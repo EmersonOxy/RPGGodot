@@ -81,6 +81,17 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_tree().reload_current_scene()
 
 
+func _resolve_loot(collider: Object) -> Node3D:
+	if collider == null:
+		return null
+	if collider.is_in_group("loot"):
+		if collider is StaticBody3D:
+			return collider as Node3D
+		elif collider.get_parent() and collider.get_parent().is_in_group("loot"):
+			return collider.get_parent() as Node3D
+	return null
+
+
 func _physics_process(_delta: float) -> void:
 	if not click_pending:
 		return
@@ -90,20 +101,37 @@ func _physics_process(_delta: float) -> void:
 
 	var origin := camera.project_ray_origin(click_position)
 	var end := origin + camera.project_ray_normal(click_position) * 100.0
-	# Camadas 1+4+8+16: pisos + inimigos + loot + click_area
+
+	# 1. Prioridade máxima: Loot (camada 16).
+	# collide_with_areas = true garante detecção instantânea do loot e de sua ClickArea sobre qualquer chão.
+	var loot_query := PhysicsRayQueryParameters3D.create(origin, end, 16)
+	loot_query.collide_with_areas = true
+	var loot_hit := get_world_3d().direct_space_state.intersect_ray(loot_query)
+	if not loot_hit.is_empty():
+		var loot_node := _resolve_loot(loot_hit.collider)
+		if loot_node != null:
+			select_enemy(null)
+			player.approach_loot(loot_node)
+			return
+
+	# 2. Inimigos e chão transitável
 	var query := PhysicsRayQueryParameters3D.create(origin, end, 29)
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if hit.is_empty():
 		return
-	# Prioridade: loot > inimigo > chão
+
 	if hit.collider.is_in_group("loot"):
-		player.approach_loot(hit.collider)
-		select_enemy(null)
-		return
+		var loot_node := _resolve_loot(hit.collider)
+		if loot_node != null:
+			select_enemy(null)
+			player.approach_loot(loot_node)
+			return
+
 	if hit.collider.is_in_group("enemies"):
 		select_enemy(hit.collider)
 		player.approach_enemy(hit.collider)
 		return
+
 	if hit.collider.is_in_group("walkable") and hit.normal.y > 0.7:
 		select_enemy(null)
 		player.set_destination(hit.position)

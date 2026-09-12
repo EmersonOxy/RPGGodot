@@ -73,14 +73,17 @@ script = ExtResource("1")
 
 [node name="HPContainer" type="VBoxContainer" parent="."]
 layout_mode = 3
-anchors_preset = 11
+anchors_preset = 7
 anchor_left = 0.5
+anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -240.0
 offset_top = -90.0
 offset_right = 240.0
 offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
 theme_override_constants/separation = 5
 
 [node name="HPRow" type="HBoxContainer" parent="HPContainer"]
@@ -179,27 +182,29 @@ text = "0 / 100"
 
 [node name="ActionBar" type="HBoxContainer" parent="."]
 layout_mode = 3
-anchors_preset = 11
+anchors_preset = 7
 anchor_left = 0.5
+anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -169.5
 offset_top = -159.0
 offset_right = 169.5
 offset_bottom = -96.0
-alignment = 2
+grow_horizontal = 2
+grow_vertical = 0
+alignment = 1
 theme_override_constants/separation = 6
 
 [node name="Slot1" type="PanelContainer" parent="ActionBar"]
-layout_mode = 0
+layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
 theme_override_styles/panel = SubResource("StyleActionSlot")
 
 [node name="Slot1Label" type="Label" parent="ActionBar/Slot1"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 17
@@ -207,15 +212,14 @@ theme_override_colors/font_color = Color(0.45, 0.4, 0.3, 1)
 text = "1"
 
 [node name="Slot2" type="PanelContainer" parent="ActionBar"]
-layout_mode = 0
+layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
 theme_override_styles/panel = SubResource("StyleActionSlot")
 
 [node name="Slot2Label" type="Label" parent="ActionBar/Slot2"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 17
@@ -223,15 +227,14 @@ theme_override_colors/font_color = Color(0.45, 0.4, 0.3, 1)
 text = "2"
 
 [node name="Slot3" type="PanelContainer" parent="ActionBar"]
-layout_mode = 0
+layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
 theme_override_styles/panel = SubResource("StyleActionSlot")
 
 [node name="Slot3Label" type="Label" parent="ActionBar/Slot3"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 17
@@ -239,15 +242,14 @@ theme_override_colors/font_color = Color(0.45, 0.4, 0.3, 1)
 text = "3"
 
 [node name="Slot4" type="PanelContainer" parent="ActionBar"]
-layout_mode = 0
+layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
 theme_override_styles/panel = SubResource("StyleActionSlot")
 
 [node name="Slot4Label" type="Label" parent="ActionBar/Slot4"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 17
@@ -255,15 +257,14 @@ theme_override_colors/font_color = Color(0.45, 0.4, 0.3, 1)
 text = "4"
 
 [node name="Slot5" type="PanelContainer" parent="ActionBar"]
-layout_mode = 0
+layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
 theme_override_styles/panel = SubResource("StyleActionSlot")
 
 [node name="Slot5Label" type="Label" parent="ActionBar/Slot5"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 17

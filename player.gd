@@ -20,7 +20,8 @@ var is_dead: bool = false
 var approach_target: Node3D = null
 var attack_cooldown: float = 0.0
 var collect_target: Node3D = null
-var COLLECT_RANGE: float = 1.5
+@export var pickup_range: float = 1.75
+var COLLECT_RANGE: float = 1.75
 var level: int = 1
 var xp: int = 0
 var max_xp: int = 100
@@ -55,7 +56,7 @@ func set_destination(point: Vector3) -> void:
 		return
 	move_mode = MoveMode.CLICK_MOVE
 	approach_target = null
-	collect_target = null
+	_set_collect_target(null)
 	if NavigationServer3D.map_get_iteration_id(navigation_agent.get_navigation_map()) > 0:
 		navigation_agent.target_position = point
 
@@ -65,20 +66,36 @@ func approach_enemy(enemy: Node3D) -> void:
 		return
 	set_destination(enemy.global_position)
 	approach_target = enemy
-	collect_target = null
+	_set_collect_target(null)
 
 
 func approach_loot(loot: Node3D) -> void:
-	if is_dead:
+	if is_dead or not is_instance_valid(loot):
 		return
+	var dist := global_position.distance_to(loot.global_position)
+	if dist <= pickup_range:
+		if loot.has_method("try_pickup"):
+			if loot.try_pickup(inventory):
+				_set_collect_target(null)
+				return
 	set_destination(loot.global_position)
-	collect_target = loot
+	_set_collect_target(loot)
 	approach_target = null
+
+
+func _set_collect_target(new_target: Node3D) -> void:
+	if is_instance_valid(collect_target) and collect_target != new_target:
+		if collect_target.has_method("set_targeted"):
+			collect_target.set_targeted(false)
+	collect_target = new_target
+	if is_instance_valid(collect_target):
+		if collect_target.has_method("set_targeted"):
+			collect_target.set_targeted(true)
 
 
 func stop_approach() -> void:
 	approach_target = null
-	collect_target = null
+	_set_collect_target(null)
 	if is_dead:
 		velocity.x = 0.0
 		velocity.z = 0.0
@@ -91,7 +108,7 @@ func stop_approach() -> void:
 func _enter_manual_mode() -> void:
 	move_mode = MoveMode.MANUAL_MOVE
 	approach_target = null
-	collect_target = null
+	_set_collect_target(null)
 	if NavigationServer3D.map_get_iteration_id(navigation_agent.get_navigation_map()) > 0:
 		navigation_agent.target_position = global_position
 
@@ -142,16 +159,16 @@ func is_in_attack_range() -> bool:
 
 func _try_collect() -> void:
 	if not is_instance_valid(collect_target):
-		collect_target = null
+		_set_collect_target(null)
 		return
 	var dist := global_position.distance_to(collect_target.global_position)
-	if dist <= COLLECT_RANGE:
+	if dist <= pickup_range:
 		var loot := collect_target as StaticBody3D
 		if loot and loot.has_method("try_pickup"):
 			if loot.try_pickup(inventory):
-				collect_target = null
+				_set_collect_target(null)
 			else:
-				collect_target = null
+				_set_collect_target(null)
 
 
 func _physics_process(delta: float) -> void:
@@ -176,7 +193,7 @@ func _physics_process(delta: float) -> void:
 			navigation_agent.target_position = approach_target.global_position
 	if collect_target != null:
 		if not is_instance_valid(collect_target):
-			collect_target = null
+			_set_collect_target(null)
 		elif map_ready and navigation_agent.target_position.distance_to(collect_target.global_position) > 0.25:
 			navigation_agent.target_position = collect_target.global_position
 	var manual_input := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
@@ -231,7 +248,7 @@ func take_damage(amount: int) -> void:
 	if health == 0:
 		is_dead = true
 		approach_target = null
-		collect_target = null
+		_set_collect_target(null)
 		velocity.x = 0.0
 		velocity.z = 0.0
 		is_moving = false
