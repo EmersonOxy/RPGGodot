@@ -63,7 +63,12 @@ func _on_mouse_entered() -> void:
 	if _item:
 		var tooltip_node := get_tree().get_first_node_in_group("item_tooltip")
 		if tooltip_node:
-			tooltip_node.show_tooltip(_item, get_global_position() + Vector2(size.x, 0))
+			var slot = _inventory.get_slot(_slot_index) if _inventory else null
+			var qty: int = slot["quantity"] if (slot and slot.has("quantity")) else 1
+			if qty > 1:
+				tooltip_node.show_tooltip_with_qty(_item, qty, get_global_rect())
+			else:
+				tooltip_node.show_tooltip(_item, get_global_rect())
 
 
 func _on_mouse_exited() -> void:

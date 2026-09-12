@@ -1,11 +1,11 @@
 extends StaticBody3D
 
 const RARITY_COLORS := {
-	0: Color(0.92, 0.92, 0.90),   # COMMON - cinza claro / branco
-	1: Color(0.35, 0.95, 0.45),   # UNCOMMON - verde
-	2: Color(0.35, 0.65, 1.00),   # RARE - azul
-	3: Color(0.80, 0.40, 1.00),   # EPIC - roxo
-	4: Color(1.00, 0.75, 0.15),   # LEGENDARY - dourado / laranja
+	0: Color(0.88, 0.88, 0.85),   # COMMON - cinza claro / branco
+	1: Color(0.25, 0.90, 0.30),   # UNCOMMON - verde vivo
+	2: Color(0.30, 0.55, 1.00),   # RARE - azul evidente
+	3: Color(0.72, 0.30, 1.00),   # EPIC - roxo evidente
+	4: Color(1.00, 0.65, 0.08),   # LEGENDARY - dourado / laranja
 }
 
 var item: ItemData = null:
@@ -16,18 +16,22 @@ var item: ItemData = null:
 
 @export var quantity: int = 1
 @export var label_distance := 14.0
-@export var hover_scale := 1.06
+@export var hover_scale := 1.04
 @export var hover_duration := 0.12
 @export var base_emission_intensity := 0.35
-@export var hover_emission_intensity := 0.85
+@export var hover_emission_intensity := 1.2
+@export var target_emission_intensity := 1.6
 
 var _collected := false
 var _is_hovered := false
 var _is_targeted := false
 var _bob_tween: Tween
 var _hover_tween: Tween
+var _pulse_tween: Tween
 var _mat: StandardMaterial3D
 var _backing_mesh: MeshInstance3D
+var _ring_mat: StandardMaterial3D
+var _base_label_y: float
 
 @onready var mesh: MeshInstance3D = $MeshInstance3D
 @onready var label: Label3D = $Label3D
@@ -45,6 +49,13 @@ func _ready() -> void:
 	collision_layer = 16
 	collision_mask = 0
 	set_collision_layer_value(5, true)
+
+	_base_label_y = label.position.y
+
+	# Guardar referência ao material do anel com material único por instância
+	if target_ring and target_ring.mesh and target_ring.mesh.material:
+		_ring_mat = (target_ring.mesh.material as StandardMaterial3D).duplicate()
+		target_ring.material_override = _ring_mat
 
 	if item != null:
 		_setup_visuals()
@@ -73,8 +84,9 @@ func _setup_visuals() -> void:
 	label.no_depth_test = true
 	label.render_priority = 10
 
-	if target_ring and target_ring.mesh and target_ring.mesh.material:
-		(target_ring.mesh.material as StandardMaterial3D).albedo_color = rarity_color.lightened(0.2)
+	if _ring_mat:
+		_ring_mat.albedo_color = rarity_color.lightened(0.2)
+		_ring_mat.albedo_color.a = 0.0
 
 	_create_or_update_backing()
 
@@ -116,19 +128,43 @@ func _start_bob_animation() -> void:
 
 func _on_mouse_entered() -> void:
 	_is_hovered = true
+	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
 	_update_visual_state(true)
 
 
 func _on_mouse_exited() -> void:
 	_is_hovered = false
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 	_update_visual_state(true)
 
 
 func set_targeted(value: bool) -> void:
 	_is_targeted = value
-	if is_instance_valid(target_ring):
-		target_ring.visible = value
 	_update_visual_state(true)
+	if value:
+		_start_pulse()
+	else:
+		_stop_pulse()
+
+
+func _start_pulse() -> void:
+	_stop_pulse()
+	if _ring_mat == null:
+		return
+	_pulse_tween = create_tween().set_loops()
+	_pulse_tween.tween_method(_set_ring_alpha, 0.6, 1.0, 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pulse_tween.tween_method(_set_ring_alpha, 1.0, 0.6, 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _stop_pulse() -> void:
+	if _pulse_tween:
+		_pulse_tween.kill()
+		_pulse_tween = null
+
+
+func _set_ring_alpha(a: float) -> void:
+	if _ring_mat:
+		_ring_mat.albedo_color.a = a
 
 
 func _update_visual_state(animate: bool) -> void:
@@ -136,12 +172,40 @@ func _update_visual_state(animate: bool) -> void:
 		return
 
 	var rarity_color: Color = RARITY_COLORS.get(item.rarity, RARITY_COLORS[0])
-	var active := _is_hovered or _is_targeted
 
-	var target_emission: Color = item.icon_color * (hover_emission_intensity if active else base_emission_intensity)
-	var target_scale: Vector3 = Vector3.ONE * (hover_scale if active else 1.0)
-	var target_label_color: Color = rarity_color.lightened(0.25) if active else rarity_color
-	var target_outline: int = 16 if active else 12
+	# Determinar intensidades com base no estado
+	var emission_mult: float
+	var target_scale: Vector3
+	var target_label_color: Color
+	var target_outline: int
+	var ring_alpha: float
+
+	if _is_targeted:
+		emission_mult = target_emission_intensity
+		target_scale = Vector3.ONE * hover_scale
+		target_label_color = rarity_color.lightened(0.35)
+		target_outline = 22
+		ring_alpha = 0.8
+	elif _is_hovered:
+		emission_mult = hover_emission_intensity
+		target_scale = Vector3.ONE * hover_scale
+		target_label_color = rarity_color.lightened(0.25)
+		target_outline = 18
+		ring_alpha = 0.35
+	else:
+		emission_mult = base_emission_intensity
+		target_scale = Vector3.ONE
+		target_label_color = rarity_color
+		target_outline = 12
+		ring_alpha = 0.0
+
+	var target_emission: Color = item.icon_color * emission_mult
+
+	# Mostrar/esconder anel
+	if target_ring and _ring_mat:
+		target_ring.visible = ring_alpha > 0.01
+		if not _is_targeted:
+			_ring_mat.albedo_color.a = ring_alpha
 
 	if _hover_tween:
 		_hover_tween.kill()
@@ -163,12 +227,44 @@ func _process(_delta: float) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	label.visible = player == null or global_position.distance_to(player.global_position) <= label_distance
 
+	# Offset vertical para evitar sobreposição de nomes de loots próximos
+	_update_label_offset()
+
+
+func _update_label_offset() -> void:
+	var my_pos := global_position
+	var offset_index := 0
+	for node in get_tree().get_nodes_in_group("loot"):
+		if node == self or node is Area3D:
+			continue
+		if not node is StaticBody3D:
+			continue
+		var other_pos: Vector3 = node.global_position
+		var dist_xz := Vector2(my_pos.x - other_pos.x, my_pos.z - other_pos.z).length()
+		if dist_xz < 1.2:
+			# Desempatar por instance_id para ordenação estável
+			if node.get_instance_id() < get_instance_id():
+				offset_index += 1
+	label.position.y = _base_label_y + offset_index * 0.45
+	var label_col := get_node_or_null("ClickArea/LabelCollision") as Node3D
+	if label_col:
+		label_col.position.y = label.position.y
+
+
+func _exit_tree() -> void:
+	if _is_hovered:
+		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	_stop_pulse()
+
 
 func try_pickup(inventory) -> bool:
 	if _collected or inventory == null or item == null:
 		return false
 	if inventory.add_item(item, quantity):
 		_collected = true
+		if _is_hovered:
+			Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+		_stop_pulse()
 		queue_free()
 		return true
 	return false

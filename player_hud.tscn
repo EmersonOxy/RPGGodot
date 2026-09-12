@@ -193,18 +193,22 @@ offset_right = 169.5
 offset_bottom = -96.0
 grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 2
 alignment = 1
 theme_override_constants/separation = 6
 
 [node name="Slot1" type="PanelContainer" parent="ActionBar"]
 layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
+mouse_filter = 0
+mouse_default_cursor_shape = 2
 theme_override_styles/panel = SubResource("StyleActionSlot")
 
 [node name="Slot1Label" type="Label" parent="ActionBar/Slot1"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+mouse_filter = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 17
@@ -214,12 +218,15 @@ text = "1"
 [node name="Slot2" type="PanelContainer" parent="ActionBar"]
 layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
+mouse_filter = 0
+mouse_default_cursor_shape = 2
 theme_override_styles/panel = SubResource("StyleActionSlot")
 
 [node name="Slot2Label" type="Label" parent="ActionBar/Slot2"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+mouse_filter = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 17
@@ -229,12 +236,15 @@ text = "2"
 [node name="Slot3" type="PanelContainer" parent="ActionBar"]
 layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
+mouse_filter = 0
+mouse_default_cursor_shape = 2
 theme_override_styles/panel = SubResource("StyleActionSlot")
 
 [node name="Slot3Label" type="Label" parent="ActionBar/Slot3"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+mouse_filter = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 17
@@ -244,12 +254,15 @@ text = "3"
 [node name="Slot4" type="PanelContainer" parent="ActionBar"]
 layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
+mouse_filter = 0
+mouse_default_cursor_shape = 2
 theme_override_styles/panel = SubResource("StyleActionSlot")
 
 [node name="Slot4Label" type="Label" parent="ActionBar/Slot4"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+mouse_filter = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 17
@@ -259,12 +272,15 @@ text = "4"
 [node name="Slot5" type="PanelContainer" parent="ActionBar"]
 layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
+mouse_filter = 0
+mouse_default_cursor_shape = 2
 theme_override_styles/panel = SubResource("StyleActionSlot")
 
 [node name="Slot5Label" type="Label" parent="ActionBar/Slot5"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+mouse_filter = 2
 horizontal_alignment = 1
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 17

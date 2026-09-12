@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://world_loot.gd" id="1"]
 
@@ -15,9 +15,13 @@ size = Vector3(0.25, 0.25, 0.25)
 height = 1.1
 radius = 0.45
 
+[sub_resource type="BoxShape3D" id="Shape_label_click"]
+size = Vector3(2.0, 0.6, 0.4)
+
 [sub_resource type="StandardMaterial3D" id="Material_target_ring"]
 shading_mode = 0
-albedo_color = Color(1, 0.9, 0.3, 0.9)
+transparency = 1
+albedo_color = Color(1, 0.9, 0.3, 0.7)
 
 [sub_resource type="TorusMesh" id="Mesh_target_ring"]
 material = SubResource("Material_target_ring")
@@ -65,3 +69,7 @@ input_ray_pickable = true
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ClickArea"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
 shape = SubResource("Shape_loot_interaction")
+
+[node name="LabelCollision" type="CollisionShape3D" parent="ClickArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
+shape = SubResource("Shape_label_click")
