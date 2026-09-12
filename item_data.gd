@@ -1,4 +1,5 @@
 extends Resource
+class_name ItemData
 
 enum ItemType { WEAPON, ARMOR, CONSUMABLE, MATERIAL, MISC }
 enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }

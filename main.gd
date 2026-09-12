@@ -5,7 +5,6 @@ const CLICK_INDICATOR_SCENE := preload("res://click_indicator.tscn")
 @onready var camera: Camera3D = $Player/Camera3D
 @onready var player: CharacterBody3D = $Player
 @onready var click_indicator: Node3D = get_node_or_null("ClickIndicator")
-@onready var player_hud: Control = $Interface/PlayerHUD
 @onready var death_label: Label = $Interface/DeathLabel
 @onready var notification_label: Label = $Interface/NotificationLabel
 @onready var inventory_menu: Control = $Interface/UIManager/InventoryMenu
@@ -22,9 +21,7 @@ func _ready() -> void:
 		click_indicator.name = "ClickIndicator"
 		add_child(click_indicator)
 	death_label.visible = false
-	player.health_changed.connect(_on_player_health_changed)
 	player.died.connect(_on_player_died)
-	_on_player_health_changed(player.health, player.max_health)
 
 
 func select_enemy(enemy: Node3D) -> void:
@@ -44,10 +41,6 @@ func _on_selected_enemy_died(_enemy: Node3D) -> void:
 	select_enemy(null)
 	player.stop_approach()
 
-
-func _on_player_health_changed(current: int, maximum: int) -> void:
-	if player_hud.has_method("_on_hp_changed"):
-		player_hud._on_hp_changed(current, maximum)
 
 
 func _on_player_died() -> void:
