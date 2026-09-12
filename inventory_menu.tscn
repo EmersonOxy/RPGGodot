@@ -1,0 +1,245 @@
+[gd_scene format=3 uid="uid://bcl4nua18vvyy"]
+
+[ext_resource type="Script" uid="uid://3v0uufvqearx" path="res://inventory_menu.gd" id="1"]
+[ext_resource type="PackedScene" path="res://inventory_slot.tscn" id="2_slot"]
+
+[sub_resource type="StyleBoxFlat" id="StylePanel"]
+content_margin_left = 24.0
+content_margin_top = 21.0
+content_margin_right = 24.0
+content_margin_bottom = 21.0
+bg_color = Color(0.08, 0.065, 0.045, 0.96)
+border_width_left = 3.0
+border_width_top = 3.0
+border_width_right = 3.0
+border_width_bottom = 3.0
+border_color = Color(0.55, 0.45, 0.18, 1)
+
+[node name="InventoryMenu" type="Control" unique_id=930231244]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="Panel" type="PanelContainer" parent="." unique_id=1396346995]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -450.0
+offset_right = 0.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StylePanel")
+
+[node name="Margin" type="MarginContainer" parent="Panel" unique_id=611638820]
+layout_mode = 2
+theme_override_constants/margin_left = 18.0
+theme_override_constants/margin_top = 15.0
+theme_override_constants/margin_right = 18.0
+theme_override_constants/margin_bottom = 15.0
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin" unique_id=548273681]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12.0
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox" unique_id=1231630331]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.72, 0.42, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
+theme_override_constants/shadow_offset_x = 2.0
+theme_override_constants/shadow_offset_y = 2.0
+theme_override_font_sizes/font_size = 27.0
+text = "INVENTÁRIO"
+horizontal_alignment = 1
+
+[node name="Sep1" type="HSeparator" parent="Panel/Margin/VBox" unique_id=233750816]
+layout_mode = 2
+
+[node name="CharRow" type="HBoxContainer" parent="Panel/Margin/VBox" unique_id=263602969]
+layout_mode = 2
+theme_override_constants/separation = 15.0
+
+[node name="StatsCol" type="VBoxContainer" parent="Panel/Margin/VBox/CharRow" unique_id=1780413644]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2.0
+
+[node name="LvBadge" type="Label" parent="Panel/Margin/VBox/CharRow/StatsCol" unique_id=752946299]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.72, 0.42, 1)
+theme_override_font_sizes/font_size = 20.0
+text = "Nível 1"
+
+[node name="Str" type="Label" parent="Panel/Margin/VBox/CharRow/StatsCol" unique_id=1548603923]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.67, 0.52, 1)
+theme_override_font_sizes/font_size = 17.0
+text = "Força 10"
+
+[node name="Agi" type="Label" parent="Panel/Margin/VBox/CharRow/StatsCol" unique_id=806550457]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.67, 0.52, 1)
+theme_override_font_sizes/font_size = 17.0
+text = "Destreza 10"
+
+[node name="Int" type="Label" parent="Panel/Margin/VBox/CharRow/StatsCol" unique_id=319559955]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.67, 0.52, 1)
+theme_override_font_sizes/font_size = 17.0
+text = "Inteligência 10"
+
+[node name="EquipCol" type="VBoxContainer" parent="Panel/Margin/VBox/CharRow" unique_id=1192926430]
+layout_mode = 2
+theme_override_constants/separation = 5.0
+
+[node name="EquipTitle" type="Label" parent="Panel/Margin/VBox/CharRow/EquipCol" unique_id=1032780582]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.58, 0.35, 1)
+theme_override_font_sizes/font_size = 17.0
+text = "EQUIPAMENTO"
+
+[node name="BagSlots" type="Control" parent="Panel/Margin/VBox" unique_id=1557589007]
+custom_minimum_size = Vector2(366, 345)
+layout_mode = 2
+mouse_filter = 1
+
+[node name="Slot01" parent="Panel/Margin/VBox/BagSlots" unique_id=579106847 instance=ExtResource("2_slot")]
+layout_mode = 0
+
+[node name="Slot02" parent="Panel/Margin/VBox/BagSlots" unique_id=275422255 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 73.5
+offset_right = 142.5
+
+[node name="Slot03" parent="Panel/Margin/VBox/BagSlots" unique_id=428817954 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 147.0
+offset_right = 216.0
+
+[node name="Slot04" parent="Panel/Margin/VBox/BagSlots" unique_id=28017232 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 220.5
+offset_right = 289.5
+
+[node name="Slot05" parent="Panel/Margin/VBox/BagSlots" unique_id=44576785 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 294.0
+offset_right = 363.0
+
+[node name="Slot06" parent="Panel/Margin/VBox/BagSlots" unique_id=123525812 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_top = 87.0
+offset_bottom = 168.0
+
+[node name="Slot07" parent="Panel/Margin/VBox/BagSlots" unique_id=409211837 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 73.5
+offset_top = 87.0
+offset_right = 142.5
+offset_bottom = 168.0
+
+[node name="Slot08" parent="Panel/Margin/VBox/BagSlots" unique_id=1721196752 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 147.0
+offset_top = 87.0
+offset_right = 216.0
+offset_bottom = 168.0
+
+[node name="Slot09" parent="Panel/Margin/VBox/BagSlots" unique_id=1695548936 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 220.5
+offset_top = 87.0
+offset_right = 289.5
+offset_bottom = 168.0
+
+[node name="Slot10" parent="Panel/Margin/VBox/BagSlots" unique_id=716385528 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 294.0
+offset_top = 87.0
+offset_right = 363.0
+offset_bottom = 168.0
+
+[node name="Slot11" parent="Panel/Margin/VBox/BagSlots" unique_id=1055268795 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_top = 174.0
+offset_bottom = 255.0
+
+[node name="Slot12" parent="Panel/Margin/VBox/BagSlots" unique_id=781051596 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 73.5
+offset_top = 174.0
+offset_right = 142.5
+offset_bottom = 255.0
+
+[node name="Slot13" parent="Panel/Margin/VBox/BagSlots" unique_id=1725271179 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 147.0
+offset_top = 174.0
+offset_right = 216.0
+offset_bottom = 255.0
+
+[node name="Slot14" parent="Panel/Margin/VBox/BagSlots" unique_id=531935161 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 220.5
+offset_top = 174.0
+offset_right = 289.5
+offset_bottom = 255.0
+
+[node name="Slot15" parent="Panel/Margin/VBox/BagSlots" unique_id=825941954 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 294.0
+offset_top = 174.0
+offset_right = 363.0
+offset_bottom = 255.0
+
+[node name="Slot16" parent="Panel/Margin/VBox/BagSlots" unique_id=97258659 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_top = 261.0
+offset_bottom = 342.0
+
+[node name="Slot17" parent="Panel/Margin/VBox/BagSlots" unique_id=888212042 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 73.5
+offset_top = 261.0
+offset_right = 142.5
+offset_bottom = 342.0
+
+[node name="Slot18" parent="Panel/Margin/VBox/BagSlots" unique_id=1224092143 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 147.0
+offset_top = 261.0
+offset_right = 216.0
+offset_bottom = 342.0
+
+[node name="Slot19" parent="Panel/Margin/VBox/BagSlots" unique_id=1104717485 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 220.5
+offset_top = 261.0
+offset_right = 289.5
+offset_bottom = 342.0
+
+[node name="Slot20" parent="Panel/Margin/VBox/BagSlots" unique_id=1987829817 instance=ExtResource("2_slot")]
+layout_mode = 0
+offset_left = 294.0
+offset_top = 261.0
+offset_right = 363.0
+offset_bottom = 342.0
+
+[node name="CloseHint" type="Label" parent="Panel/Margin/VBox" unique_id=425629127]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.32, 0.25, 1)
+theme_override_font_sizes/font_size = 15.0
+text = "I para fechar
+Arraste entre slots ou para fora do painel"
+horizontal_alignment = 1
+
+
+

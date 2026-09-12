@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://click_indicator.gd" id="1_script"]
+
+[sub_resource type="StandardMaterial3D" id="Material_ring"]
+resource_local_to_scene = true
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0.75, 0.92, 1, 0.85)
+
+[sub_resource type="TorusMesh" id="Mesh_ring"]
+inner_radius = 0.43
+outer_radius = 0.5
+rings = 32
+ring_segments = 8
+
+[node name="ClickIndicator" type="Node3D"]
+visible = false
+script = ExtResource("1_script")
+
+[node name="Ring" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+gi_mode = 0
+material_override = SubResource("Material_ring")
+mesh = SubResource("Mesh_ring")

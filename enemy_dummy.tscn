@@ -1,0 +1,60 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://enemy_dummy.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://enemy_health_bar.tscn" id="2_hbar"]
+
+[sub_resource type="StandardMaterial3D" id="Material_enemy"]
+albedo_color = Color(0.8, 0.12, 0.16, 1)
+roughness = 0.9
+
+[sub_resource type="CapsuleMesh" id="Mesh_enemy"]
+material = SubResource("Material_enemy")
+radius = 0.4
+height = 1.8
+radial_segments = 12
+rings = 4
+
+[sub_resource type="CapsuleShape3D" id="Shape_enemy"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="Material_selection"]
+shading_mode = 0
+albedo_color = Color(1, 0.9, 0.12, 1)
+
+[sub_resource type="TorusMesh" id="Mesh_selection"]
+material = SubResource("Material_selection")
+inner_radius = 0.55
+outer_radius = 0.72
+rings = 32
+ring_segments = 8
+
+[node name="EnemyDummy" type="CharacterBody3D" groups=["enemies"]]
+collision_layer = 8
+collision_mask = 15
+floor_snap_length = 0.35
+script = ExtResource("1_enemy")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.9, 0)
+mesh = SubResource("Mesh_enemy")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.9, 0)
+shape = SubResource("Shape_enemy")
+
+[node name="SelectionIndicator" type="MeshInstance3D" parent="."]
+visible = false
+position = Vector3(0, 0.04, 0)
+scale = Vector3(1, 0.15, 1)
+cast_shadow = 0
+mesh = SubResource("Mesh_selection")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.25
+target_desired_distance = 0.2
+height = 1.8
+radius = 0.4
+
+[node name="EnemyHealthBar" parent="." instance=ExtResource("2_hbar")]
+

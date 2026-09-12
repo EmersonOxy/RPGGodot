@@ -1,0 +1,86 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://enemy_health_bar.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="Background"]
+bg_color = Color(0.055, 0.045, 0.045, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.12, 0.10, 0.08, 1)
+
+[sub_resource type="StyleBoxEmpty" id="Transparent"]
+
+[sub_resource type="StyleBoxFlat" id="Red"]
+bg_color = Color(0.85, 0.13, 0.19, 1)
+
+[sub_resource type="StyleBoxFlat" id="Ghost"]
+bg_color = Color(0.94, 0.86, 0.61, 1)
+
+[node name="EnemyHealthBar" type="Node3D"]
+script = ExtResource("1")
+
+[node name="SubViewport" type="SubViewport" parent="."]
+disable_3d = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(128, 40)
+render_target_update_mode = 4
+
+[node name="EnemyHealthBar" type="Control" parent="SubViewport"]
+layout_mode = 0
+offset_right = 128.0
+offset_bottom = 40.0
+mouse_filter = 2
+
+[node name="DamageGhostBar" type="ProgressBar" parent="SubViewport/EnemyHealthBar"]
+layout_mode = 0
+offset_left = 9.0
+offset_top = 26.0
+offset_right = 119.0
+offset_bottom = 36.0
+mouse_filter = 2
+theme_override_styles/background = SubResource("Background")
+theme_override_styles/fill = SubResource("Ghost")
+min_value = 0.0
+max_value = 100.0
+value = 100.0
+fill_mode = 0
+show_percentage = false
+
+[node name="HealthBar" type="ProgressBar" parent="SubViewport/EnemyHealthBar"]
+layout_mode = 0
+offset_left = 9.0
+offset_top = 26.0
+offset_right = 119.0
+offset_bottom = 36.0
+mouse_filter = 2
+theme_override_styles/background = SubResource("Transparent")
+theme_override_styles/fill = SubResource("Red")
+min_value = 0.0
+max_value = 100.0
+value = 100.0
+fill_mode = 0
+show_percentage = false
+
+[node name="NameLabel" type="Label" parent="SubViewport/EnemyHealthBar"]
+layout_mode = 0
+offset_right = 128.0
+offset_bottom = 25.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.96, 0.94, 0.90, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.035, 0.03, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+text = "Dummy"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Sprite3D" type="Sprite3D" parent="."]
+position = Vector3(0, 2.55, 0)
+pixel_size = 0.0264
+billboard = 1
+shaded = false
+double_sided = true
+texture_filter = 0

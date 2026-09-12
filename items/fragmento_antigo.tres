@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fragmento_antigo"
+display_name = "Fragmento Antigo"
+description = "Um fragmento misterioso de origem desconhecida."
+item_type = 3
+rarity = 1
+stackable = true
+max_stack = 99
+icon_color = Color(0.4, 0.8, 0.9, 1)

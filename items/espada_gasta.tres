@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://item_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "espada_gasta"
+display_name = "Espada Gasta"
+description = "Uma espada velha e bastante usada."
+item_type = 0
+rarity = 0
+stackable = false
+max_stack = 1
+icon_color = Color(0.7, 0.7, 0.7, 1)
