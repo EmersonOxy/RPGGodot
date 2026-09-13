@@ -15,17 +15,7 @@ func _ready() -> void:
 	_dropper = preload("res://inventory_dropper.gd").new()
 	_dropper.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(_dropper)
-	if _bag_slots.get_child_count() != 20:
-		push_warning("InventoryMenu: esperados exatamente 20 slots em BagSlots.")
 	_inventory = _find_inventory()
-	for index in range(20):
-		var slot := _bag_slots.get_node_or_null("Slot%02d" % (index + 1)) as Control
-		if slot == null or not slot.has_method("setup"):
-			push_warning("InventoryMenu: Slot%02d ausente ou sem script." % (index + 1))
-			continue
-		_slots.append(slot)
-		if _inventory != null:
-			slot.setup(_inventory, index)
 	if _inventory != null:
 		var player := _inventory.get_parent()
 		for slot in $Panel/Margin/VBox/EquipmentArea.get_children():
@@ -87,7 +77,15 @@ func _has_point(point: Vector2) -> bool:
 			return false
 	return Rect2(Vector2.ZERO, size).has_point(point)
 func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
-	return _is_open and not get_tree().paused and data is Dictionary and data.get("kind") == "inventory_item" and data.get("inventory") == _inventory and not _inventory.get_parent().is_dead and not _panel.get_global_rect().has_point(to_global_point(at_position)) and _inventory.matches_slot(data.index, data.item, data.quantity)
+	if not _is_open or get_tree().paused or not data is Dictionary or _inventory.get_parent().is_dead or _panel.get_global_rect().has_point(to_global_point(at_position)):
+		return false
+	
+	if data.get("kind") == "inventory_item":
+		return data.get("inventory") == _inventory and data.get("placement") != null and _inventory.get_all_placements().has(data.placement)
+	elif data.get("kind") == "equipment_item":
+		return data.get("equipment") != null and data.get("item") != null and data.get("equipment").get_item(data.get("slot")) == data.get("item")
+		
+	return false
 
 func to_global_point(point: Vector2) -> Vector2:
 	return get_global_transform() * point

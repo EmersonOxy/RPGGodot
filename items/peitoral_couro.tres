@@ -9,3 +9,5 @@ item_type = 1
 equipment_slot = 4
 armor_bonus = 8
 max_health_bonus = 15
+inventory_size = Vector2i(2, 3)
+

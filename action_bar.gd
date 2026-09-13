@@ -38,7 +38,7 @@ func can_accept(data: Variant) -> bool:
 	if not item is ItemData or item.item_type != ItemData.ItemType.CONSUMABLE or item.equipment_slot != ItemData.EquipmentSlot.NONE:
 		return false
 	if data.get("kind") == "inventory_item":
-		return data.get("inventory") == inventory and inventory.matches_slot(data.get("index", -1), item, data.get("quantity", 0))
+		return data.get("inventory") == inventory and data.get("placement") != null and inventory.get_all_placements().has(data.placement)
 	return data.get("kind") == "action_item" and data.get("action_bar") == self and get_item(data.get("index", -1)) == item and inventory.count_item(item) > 0
 
 func accept_drop(index: int, data: Variant) -> bool:

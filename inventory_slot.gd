@@ -27,10 +27,33 @@ func _update_visual() -> void:
 		_on_mouse_exited()
 		_on_mouse_entered()
 
+var _icon_rect: TextureRect = null
+
 func _display_item(item: ItemData, qty: int) -> void:
 	_item = item
 	if _item:
-		_label.text = _item.display_name
+		if _item.icon != null:
+			if _icon_rect == null:
+				_icon_rect = TextureRect.new()
+				_icon_rect.name = "ItemIcon"
+				_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				_icon_rect.anchor_right = 1.0
+				_icon_rect.anchor_bottom = 1.0
+				_icon_rect.offset_left = 4.0
+				_icon_rect.offset_top = 4.0
+				_icon_rect.offset_right = -4.0
+				_icon_rect.offset_bottom = -4.0
+				_icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				$VBox.add_child(_icon_rect)
+			_icon_rect.texture = _item.icon
+			_icon_rect.visible = true
+			_label.visible = false
+		else:
+			if _icon_rect:
+				_icon_rect.visible = false
+			_label.visible = true
+			_label.text = _item.display_name
 		_qty_label.text = "x%d" % qty if qty > 1 else ""
 		_qty_label.visible = qty > 1
 		var style := StyleBoxFlat.new()
@@ -46,6 +69,9 @@ func _display_item(item: ItemData, qty: int) -> void:
 		style.corner_radius_bottom_right = 3
 		add_theme_stylebox_override("panel", style)
 	else:
+		if _icon_rect:
+			_icon_rect.visible = false
+		_label.visible = true
 		_label.text = ""
 		_qty_label.text = ""
 		_qty_label.visible = false

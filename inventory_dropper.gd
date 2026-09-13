@@ -12,23 +12,50 @@ func _physics_process(_delta: float) -> void:
 		return
 	var data := _pending
 	_pending = {}
-	var inventory: Node = data.get("inventory")
-	if not is_instance_valid(inventory):
+	var kind: String = data.get("kind", "")
+	var player: CharacterBody3D = null
+	
+	if kind == "inventory_item":
+		var inventory: Node = data.get("inventory")
+		if not is_instance_valid(inventory):
+			return
+		player = inventory.get_parent() as CharacterBody3D
+		if data.get("placement") == null or not inventory.get_all_placements().has(data.placement):
+			return
+	elif kind == "equipment_item":
+		var eq: Node = data.get("equipment")
+		if not is_instance_valid(eq):
+			return
+		player = eq.get_parent() as CharacterBody3D
+		var slot = data.get("slot")
+		if eq.get_item(slot) != data.item:
+			return
+	else:
 		return
-	var player: CharacterBody3D = inventory.get_parent()
-	if player.is_dead or get_tree().paused or not inventory.matches_slot(data.index, data.item, data.quantity):
+		
+	if player == null or player.is_dead or get_tree().paused:
 		return
+		
 	var point := _find_surface(player)
 	if point.is_empty():
 		get_tree().current_scene.show_notification("Sem espaço seguro para soltar o item")
 		return
+		
 	var loot := LOOT_SCENE.instantiate()
 	loot.item = data.item
-	loot.quantity = data.quantity
+	loot.quantity = data.get("quantity", 1)
 	get_tree().current_scene.add_child(loot)
 	loot.global_position = point.position + Vector3.UP * 0.04
-	if not inventory.remove_slot(data.index, data.item, data.quantity):
-		loot.queue_free()
+	
+	if kind == "inventory_item":
+		var inventory: Node = data.get("inventory")
+		if not inventory.remove_placement(data.placement):
+			loot.queue_free()
+	elif kind == "equipment_item":
+		var eq = data.get("equipment")
+		var slot = data.get("slot")
+		eq._items.erase(slot)
+		eq.changed.emit()
 
 func _find_surface(player: CharacterBody3D) -> Dictionary:
 	var space := player.get_world_3d().direct_space_state

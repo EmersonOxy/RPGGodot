@@ -27,6 +27,10 @@ tree_root = ExtResource("3_machine")
 anim_player = NodePath("../Model/AnimationPlayer")
 active = false
 parameters/Walk/Speed/scale = 1.0
-parameters/Attack/Speed/scale = 2.3921569
+parameters/ArmedWalk/Speed/scale = 1.0
+parameters/ArmedAttack/Speed/scale = 2.3921569
+parameters/conditions/drawn = false
+parameters/conditions/moving = false
+parameters/conditions/stopped = true
 
 [editable path="Model"]

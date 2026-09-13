@@ -26,14 +26,18 @@ var _collected := false
 var _is_hovered := false
 var _is_targeted := false
 var _bob_tween: Tween
+var _rot_tween: Tween
 var _hover_tween: Tween
 var _pulse_tween: Tween
 var _mat: StandardMaterial3D
 var _backing_mesh: MeshInstance3D
 var _ring_mat: StandardMaterial3D
 var _base_label_y: float
+var _custom_model: Node3D = null
+var _custom_materials: Array[StandardMaterial3D] = []
 
-@onready var mesh: MeshInstance3D = $MeshInstance3D
+@onready var visual_root: Node3D = $VisualRoot
+@onready var mesh: MeshInstance3D = $VisualRoot/MeshInstance3D
 @onready var label: Label3D = $Label3D
 @onready var area: Area3D = $ClickArea
 @onready var target_ring: MeshInstance3D = get_node_or_null("TargetRing")
@@ -67,11 +71,45 @@ func _setup_visuals() -> void:
 	if item == null:
 		return
 
-	_mat = StandardMaterial3D.new()
-	_mat.albedo_color = item.icon_color
-	_mat.emission_enabled = true
-	_mat.emission = item.icon_color * base_emission_intensity
-	mesh.material_override = _mat
+	if _custom_model and is_instance_valid(_custom_model):
+		_custom_model.queue_free()
+		_custom_model = null
+	_custom_materials.clear()
+
+	if item.world_scene != null:
+		mesh.visible = false
+		_mat = null
+		_custom_model = item.world_scene.instantiate() as Node3D
+		visual_root.add_child(_custom_model)
+		_custom_model.scale = item.world_scale if item.world_scale != Vector3.ZERO else Vector3.ONE
+		_custom_model.rotation = item.world_rotation
+		_custom_model.position = item.world_position
+
+		for child in _custom_model.find_children("*", "MeshInstance3D", true, false):
+			var mi := child as MeshInstance3D
+			for slot in range(mi.get_surface_override_material_count()):
+				var sm := mi.get_active_material(slot)
+				if sm is StandardMaterial3D and not sm in _custom_materials:
+					var dup := sm.duplicate() as StandardMaterial3D
+					mi.set_surface_override_material(slot, dup)
+					dup.emission_enabled = true
+					dup.emission = item.icon_color * base_emission_intensity
+					_custom_materials.append(dup)
+			if _custom_materials.is_empty():
+				var sm := mi.get_active_material(0)
+				if sm is StandardMaterial3D and not sm in _custom_materials:
+					var dup := sm.duplicate() as StandardMaterial3D
+					mi.material_override = dup
+					dup.emission_enabled = true
+					dup.emission = item.icon_color * base_emission_intensity
+					_custom_materials.append(dup)
+	else:
+		mesh.visible = true
+		_mat = StandardMaterial3D.new()
+		_mat.albedo_color = item.icon_color
+		_mat.emission_enabled = true
+		_mat.emission = item.icon_color * base_emission_intensity
+		mesh.material_override = _mat
 
 	var rarity_color: Color = RARITY_COLORS.get(item.rarity, RARITY_COLORS[0])
 	label.text = item.display_name + ("  ×%d" % quantity if quantity > 1 else "")
@@ -114,16 +152,28 @@ func _create_or_update_backing() -> void:
 		label.add_child(_backing_mesh)
 		_backing_mesh.position = Vector3(0, 0, -0.01)
 
+	_start_bob_animation()
+
 
 func _start_bob_animation() -> void:
 	if _bob_tween:
 		_bob_tween.kill()
-	_bob_tween = create_tween().set_loops()
-	_bob_tween.tween_property(mesh, "position:y", 0.4, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_bob_tween.tween_property(mesh, "position:y", 0.25, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_bob_tween = null
+	if _rot_tween:
+		_rot_tween.kill()
+		_rot_tween = null
 
-	var rot_tween := create_tween().set_loops()
-	rot_tween.tween_property(mesh, "rotation:y", TAU, 4.0).set_trans(Tween.TRANS_LINEAR)
+	if item != null and item.world_display_mode == ItemData.WorldDisplayMode.GROUND_STATIC:
+		visual_root.position = Vector3(0, 0.02 + item.world_ground_offset, 0)
+		visual_root.rotation = Vector3.ZERO
+		return
+
+	_bob_tween = create_tween().set_loops()
+	_bob_tween.tween_property(visual_root, "position:y", 0.4, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_bob_tween.tween_property(visual_root, "position:y", 0.25, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	_rot_tween = create_tween().set_loops()
+	_rot_tween.tween_property(visual_root, "rotation:y", TAU, 4.0).set_trans(Tween.TRANS_LINEAR)
 
 
 func _on_mouse_entered() -> void:
@@ -168,7 +218,7 @@ func _set_ring_alpha(a: float) -> void:
 
 
 func _update_visual_state(animate: bool) -> void:
-	if item == null or _mat == null:
+	if item == null:
 		return
 
 	var rarity_color: Color = RARITY_COLORS.get(item.rarity, RARITY_COLORS[0])
@@ -212,13 +262,19 @@ func _update_visual_state(animate: bool) -> void:
 
 	if animate:
 		_hover_tween = create_tween().set_parallel(true)
-		_hover_tween.tween_property(_mat, "emission", target_emission, hover_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		_hover_tween.tween_property(mesh, "scale", target_scale, hover_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		if _mat:
+			_hover_tween.tween_property(_mat, "emission", target_emission, hover_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		for cmat in _custom_materials:
+			_hover_tween.tween_property(cmat, "emission", target_emission, hover_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		_hover_tween.tween_property(visual_root, "scale", target_scale, hover_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		_hover_tween.tween_property(label, "modulate", target_label_color, hover_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		_hover_tween.tween_property(label, "outline_size", target_outline, hover_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	else:
-		_mat.emission = target_emission
-		mesh.scale = target_scale
+		if _mat:
+			_mat.emission = target_emission
+		for cmat in _custom_materials:
+			cmat.emission = target_emission
+		visual_root.scale = target_scale
 		label.modulate = target_label_color
 		label.outline_size = target_outline
 

@@ -16,19 +16,17 @@ func can_accept(data: Variant, slot: int) -> bool:
 		return false
 	if data.get("kind") != "inventory_item" or data.get("inventory") != inventory:
 		return false
-	if not inventory.matches_slot(data.get("index", -1), data.get("item"), data.get("quantity", 0)):
+	if data.get("placement") == null or not inventory.get_all_placements().has(data.placement):
 		return false
 	if not can_equip(data.item, slot):
 		return false
-	# Uma troca exige espaço antes de remover o novo item, conforme a regra da bolsa cheia.
-	return get_item(slot) == null or inventory.can_add(get_item(slot), 1)
+	return true
 
 func equip_from_bag(data: Variant, slot: int) -> bool:
 	if not can_accept(data, slot):
 		return false
 	var previous := get_item(slot)
-	# Nenhum sinal é emitido entre as duas alterações: observadores veem a transação completa.
-	if not inventory.exchange_equipment(data.index, data.item, data.quantity, previous):
+	if not inventory.exchange_equipment(data.placement, data.item, data.quantity, previous):
 		return false
 	_items[slot] = data.item
 	changed.emit()
@@ -36,7 +34,7 @@ func equip_from_bag(data: Variant, slot: int) -> bool:
 	return true
 
 func can_unequip(data: Variant, destination: int) -> bool:
-	return not get_tree().paused and not get_parent().is_dead and data is Dictionary and data.get("kind") == "equipment_item" and data.get("equipment") == self and data.get("item") != null and get_item(data.get("slot", 0)) == data.item and destination >= 0 and destination < inventory.get_slot_count() and inventory.get_slot(destination).item == null
+	return not get_tree().paused and not get_parent().is_dead and data is Dictionary and data.get("kind") == "equipment_item" and data.get("equipment") == self and data.get("item") != null and get_item(data.get("slot", 0)) == data.item and inventory.find_space(data.item) != Vector2i(-1, -1)
 
 func unequip_to_bag(data: Variant, destination: int) -> bool:
 	if not can_unequip(data, destination):

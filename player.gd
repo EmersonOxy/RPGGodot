@@ -8,7 +8,10 @@ signal level_up(new_level: int)
 signal died
 signal stats_changed
 signal attack_executed(target: Node3D, interval: float)
+signal weapon_drawn_changed(drawn: bool)
 
+var weapon_drawn: bool = false
+var unarmed_damage: int = 5
 const ATTACK_DAMAGE: int = 20
 const ATTACK_INTERVAL: float = 1.0
 
@@ -37,6 +40,7 @@ var health: int = 100
 var is_dead: bool = false
 var approach_target: Node3D = null
 var attack_cooldown: float = 0.0
+var attack_hit_resolved: bool = false
 var collect_target: Node3D = null
 @export var pickup_range: float = 1.75
 var COLLECT_RANGE: float = 1.75
@@ -59,11 +63,30 @@ func _ready() -> void:
 	action_bar = preload("res://action_bar.gd").new()
 	action_bar.name = "ActionBar"
 	add_child(action_bar)
+	_equip_starting_items()
 	recalculate_stats()
 	health = max_health
 
+func _equip_starting_items() -> void:
+	var starting_sword := load("res://items/espada_gasta.tres") as ItemData
+	if starting_sword:
+		equipment._items[ItemData.EquipmentSlot.WEAPON] = starting_sword
+		equipment.changed.emit()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_weapon"):
+		var has_weapon = equipment.get_item(ItemData.EquipmentSlot.WEAPON) != null
+		if has_weapon:
+			weapon_drawn = not weapon_drawn
+			weapon_drawn_changed.emit(weapon_drawn)
+
 func recalculate_stats() -> void:
 	equipment_bonuses = equipment.get_bonuses()
+	var has_weapon = equipment.get_item(ItemData.EquipmentSlot.WEAPON) != null
+	if not has_weapon and weapon_drawn:
+		weapon_drawn = false
+		weapon_drawn_changed.emit(weapon_drawn)
+		
 	attack_damage = maxi(0, base_attack_damage + equipment_bonuses.attack_damage)
 	armor = maxi(0, base_armor + equipment_bonuses.armor)
 	strength = base_strength + equipment_bonuses.strength
@@ -275,14 +298,8 @@ func _physics_process(delta: float) -> void:
 
 	if is_in_attack_range() and approach_target.is_selected and attack_cooldown <= 0.0:
 		attack_cooldown = ATTACK_INTERVAL
-		var hp_before: int = approach_target.health
+		attack_hit_resolved = false
 		attack_executed.emit(approach_target, ATTACK_INTERVAL)
-		approach_target.take_damage(attack_damage)
-		# Dar XP por matar
-		if is_instance_valid(approach_target) and hp_before <= attack_damage:
-			gain_xp(25)
-		elif not is_instance_valid(approach_target):
-			gain_xp(25)
 
 	if collect_target != null:
 		_try_collect()
@@ -303,3 +320,24 @@ func take_damage(amount: int, damage_type: int = COMBAT_TEXT.DamageType.PLAYER_D
 		is_moving = false
 		move_direction = Vector3.ZERO
 		died.emit()
+
+func _on_attack_impact() -> void:
+	if attack_hit_resolved:
+		return
+	attack_hit_resolved = true
+	
+	if not is_instance_valid(approach_target):
+		return
+		
+	var dist = global_position.distance_to(approach_target.global_position)
+	if dist > attack_range * 1.5:
+		return
+		
+	var final_damage = attack_damage if weapon_drawn else unarmed_damage
+	var hp_before: int = approach_target.health
+	approach_target.take_damage(final_damage)
+	
+	if is_instance_valid(approach_target) and hp_before <= final_damage:
+		gain_xp(25)
+	elif not is_instance_valid(approach_target):
+		gain_xp(25)

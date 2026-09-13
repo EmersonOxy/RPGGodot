@@ -1,16 +1,21 @@
-[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://40li8xan3hru"]
 
-[ext_resource type="Script" path="res://item_data.gd" id="1"]
+[ext_resource type="Script" uid="uid://klqikmkv5lxy" path="res://item_data.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://rbhhjfeico10" path="res://assets/player/bastard_sword__lowpoly.glb" id="2_sword"]
 
 [resource]
 script = ExtResource("1")
+equipment_slot = 2
+attack_damage_bonus = 5
 id = "espada_gasta"
 display_name = "Espada Gasta"
 description = "Uma espada velha e bastante usada."
 item_type = 0
-rarity = 0
-stackable = false
-max_stack = 1
 icon_color = Color(0.7, 0.7, 0.7, 1)
-equipment_slot = 2
-attack_damage_bonus = 5
+inventory_size = Vector2i(1, 3)
+world_scene = ExtResource("2_sword")
+world_scale = Vector3(0.027, 0.027, 0.027)
+world_rotation = Vector3(1.5707963, 0, 0.785398)
+world_position = Vector3(0, 0.04, 0)
+world_display_mode = 1
+world_ground_offset = 0.1

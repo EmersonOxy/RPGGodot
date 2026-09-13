@@ -4,6 +4,7 @@ class_name ItemData
 enum ItemType { WEAPON, ARMOR, CONSUMABLE, MATERIAL, MISC }
 enum Rarity { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY }
 enum EquipmentSlot { NONE, HEAD, WEAPON, OFFHAND, CHEST, HANDS, LEGS, BOOTS, RING, AMULET }
+enum WorldDisplayMode { FLOATING_ROTATING, GROUND_STATIC }
 
 @export var equipment_slot: EquipmentSlot = EquipmentSlot.NONE
 @export var attack_damage_bonus: int = 0
@@ -37,6 +38,16 @@ func get_bonus_text() -> String:
 @export var stackable: bool = false
 @export var max_stack: int = 1
 @export var icon_color: Color = Color.WHITE
+@export var icon: Texture2D = null
+@export var inventory_size: Vector2i = Vector2i(1, 1)
+
+@export_group("World Visual")
+@export var world_scene: PackedScene = null
+@export var world_scale: Vector3 = Vector3.ONE
+@export var world_rotation: Vector3 = Vector3.ZERO
+@export var world_position: Vector3 = Vector3.ZERO
+@export var world_display_mode: WorldDisplayMode = WorldDisplayMode.FLOATING_ROTATING
+@export var world_ground_offset: float = 0.0
 
 const RARITY_NAMES := ["Comum", "Incomum", "Raro", "Épico", "Lendário"]
 const TYPE_NAMES := ["Arma", "Armadura", "Consumível", "Material", "Diversos"]

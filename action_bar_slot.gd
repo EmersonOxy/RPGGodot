@@ -27,10 +27,22 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	var tip := get_tree().get_first_node_in_group("item_tooltip")
 	if tip:
 		tip.hide_tooltip()
-	var preview := Label.new()
-	preview.text = item.display_name
-	preview.add_theme_color_override("font_outline_color", Color.BLACK)
-	preview.add_theme_constant_override("outline_size", 6)
+	var preview: Control
+	if item.icon != null:
+		var tex := TextureRect.new()
+		tex.texture = item.icon
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		var s: Vector2i = item.inventory_size
+		tex.size = Vector2(s.x * 36 + (s.x - 1) * 2, s.y * 36 + (s.y - 1) * 2)
+		tex.modulate = Color(1, 1, 1, 0.7)
+		preview = tex
+	else:
+		var lbl := Label.new()
+		lbl.text = item.display_name
+		lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+		lbl.add_theme_constant_override("outline_size", 6)
+		preview = lbl
 	set_drag_preview(preview)
 	return {"kind": "action_item", "action_bar": action_bar, "index": slot_index, "item": item}
 

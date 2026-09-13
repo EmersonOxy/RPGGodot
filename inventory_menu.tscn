@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://3v0uufvqearx" path="res://inventory_menu.gd" id="1"]
 [ext_resource type="PackedScene" path="res://inventory_slot.tscn" id="2_slot"]
 [ext_resource type="Script" uid="uid://b00u4x762ueqv" path="res://equipment_slot.gd" id="3_equipment"]
+[ext_resource type="Script" uid="uid://dg47nuncg1bk3" path="res://inventory_grid_ui.gd" id="4_grid"]
 
 [sub_resource type="StyleBoxFlat" id="StylePanel"]
 content_margin_left = 24.0
@@ -60,7 +61,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 27
-text = "INVENTÁRIO"
+text = "INVENTÃRIO"
 horizontal_alignment = 1
 
 [node name="Sep1" type="HSeparator" parent="Panel/Margin/VBox" unique_id=233750816]
@@ -79,13 +80,13 @@ theme_override_constants/separation = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.72, 0.42, 1)
 theme_override_font_sizes/font_size = 20
-text = "Nível 1"
+text = "NÃ­vel 1"
 
 [node name="Str" type="Label" parent="Panel/Margin/VBox/CharRow/StatsCol" unique_id=1548603923]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.67, 0.52, 1)
 theme_override_font_sizes/font_size = 17
-text = "Força 10"
+text = "ForÃ§a 10"
 
 [node name="Agi" type="Label" parent="Panel/Margin/VBox/CharRow/StatsCol" unique_id=806550457]
 layout_mode = 2
@@ -97,7 +98,7 @@ text = "Destreza 10"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.67, 0.52, 1)
 theme_override_font_sizes/font_size = 17
-text = "Inteligência 10"
+text = "InteligÃªncia 10"
 
 [node name="Armor" type="Label" parent="Panel/Margin/VBox/CharRow/StatsCol" unique_id=2064264186]
 layout_mode = 2
@@ -135,7 +136,7 @@ offset_right = 225.0
 offset_bottom = 100.0
 script = ExtResource("3_equipment")
 equipment_slot = 1
-slot_label = "CABEÇA"
+slot_label = "CABEÃ‡A"
 
 [node name="WeaponSlot" parent="Panel/Margin/VBox/EquipmentArea" unique_id=1503181617 instance=ExtResource("2_slot")]
 clip_contents = false
@@ -157,7 +158,7 @@ offset_right = 336.0
 offset_bottom = 178.0
 script = ExtResource("3_equipment")
 equipment_slot = 3
-slot_label = "SECUNDÁRIA"
+slot_label = "SECUNDÃRIA"
 
 [node name="ChestSlot" parent="Panel/Margin/VBox/EquipmentArea" unique_id=1516465850 instance=ExtResource("2_slot")]
 clip_contents = false
@@ -229,145 +230,4 @@ slot_label = "AMULETO"
 custom_minimum_size = Vector2(366, 345)
 layout_mode = 2
 mouse_filter = 1
-
-[node name="Slot01" parent="Panel/Margin/VBox/BagSlots" unique_id=579106847 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-
-[node name="Slot02" parent="Panel/Margin/VBox/BagSlots" unique_id=275422255 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 73.5
-offset_right = 142.5
-
-[node name="Slot03" parent="Panel/Margin/VBox/BagSlots" unique_id=428817954 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 147.0
-offset_right = 216.0
-
-[node name="Slot04" parent="Panel/Margin/VBox/BagSlots" unique_id=28017232 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 220.5
-offset_right = 289.5
-
-[node name="Slot05" parent="Panel/Margin/VBox/BagSlots" unique_id=44576785 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 294.0
-offset_right = 363.0
-
-[node name="Slot06" parent="Panel/Margin/VBox/BagSlots" unique_id=123525812 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_top = 87.0
-offset_bottom = 168.0
-
-[node name="Slot07" parent="Panel/Margin/VBox/BagSlots" unique_id=409211837 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 73.5
-offset_top = 87.0
-offset_right = 142.5
-offset_bottom = 168.0
-
-[node name="Slot08" parent="Panel/Margin/VBox/BagSlots" unique_id=1721196752 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 147.0
-offset_top = 87.0
-offset_right = 216.0
-offset_bottom = 168.0
-
-[node name="Slot09" parent="Panel/Margin/VBox/BagSlots" unique_id=1695548936 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 220.5
-offset_top = 87.0
-offset_right = 289.5
-offset_bottom = 168.0
-
-[node name="Slot10" parent="Panel/Margin/VBox/BagSlots" unique_id=716385528 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 294.0
-offset_top = 87.0
-offset_right = 363.0
-offset_bottom = 168.0
-
-[node name="Slot11" parent="Panel/Margin/VBox/BagSlots" unique_id=1055268795 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_top = 174.0
-offset_bottom = 255.0
-
-[node name="Slot12" parent="Panel/Margin/VBox/BagSlots" unique_id=781051596 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 73.5
-offset_top = 174.0
-offset_right = 142.5
-offset_bottom = 255.0
-
-[node name="Slot13" parent="Panel/Margin/VBox/BagSlots" unique_id=1725271179 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 147.0
-offset_top = 174.0
-offset_right = 216.0
-offset_bottom = 255.0
-
-[node name="Slot14" parent="Panel/Margin/VBox/BagSlots" unique_id=531935161 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 220.5
-offset_top = 174.0
-offset_right = 289.5
-offset_bottom = 255.0
-
-[node name="Slot15" parent="Panel/Margin/VBox/BagSlots" unique_id=825941954 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 294.0
-offset_top = 174.0
-offset_right = 363.0
-offset_bottom = 255.0
-
-[node name="Slot16" parent="Panel/Margin/VBox/BagSlots" unique_id=97258659 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_top = 261.0
-offset_bottom = 342.0
-
-[node name="Slot17" parent="Panel/Margin/VBox/BagSlots" unique_id=888212042 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 73.5
-offset_top = 261.0
-offset_right = 142.5
-offset_bottom = 342.0
-
-[node name="Slot18" parent="Panel/Margin/VBox/BagSlots" unique_id=1224092143 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 147.0
-offset_top = 261.0
-offset_right = 216.0
-offset_bottom = 342.0
-
-[node name="Slot19" parent="Panel/Margin/VBox/BagSlots" unique_id=1104717485 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 220.5
-offset_top = 261.0
-offset_right = 289.5
-offset_bottom = 342.0
-
-[node name="Slot20" parent="Panel/Margin/VBox/BagSlots" unique_id=1987829817 instance=ExtResource("2_slot")]
-clip_contents = false
-layout_mode = 0
-offset_left = 294.0
-offset_top = 261.0
-offset_right = 363.0
-offset_bottom = 342.0
+script = ExtResource("4_grid")
