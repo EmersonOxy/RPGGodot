@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" path="res://player_hud.gd" id="1"]
 
+[ext_resource type="Script" path="res://action_bar_slot.gd" id="2_action"]
+
 [sub_resource type="StyleBoxFlat" id="StyleHPFrame"]
 bg_color = Color(0.04, 0.035, 0.025, 1)
 border_color = Color(0.22, 0.19, 0.1, 1)
@@ -198,6 +200,7 @@ alignment = 1
 theme_override_constants/separation = 6
 
 [node name="Slot1" type="PanelContainer" parent="ActionBar"]
+script = ExtResource("2_action")
 layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
 mouse_filter = 0
@@ -216,6 +219,7 @@ theme_override_colors/font_color = Color(0.45, 0.4, 0.3, 1)
 text = "1"
 
 [node name="Slot2" type="PanelContainer" parent="ActionBar"]
+script = ExtResource("2_action")
 layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
 mouse_filter = 0
@@ -234,6 +238,7 @@ theme_override_colors/font_color = Color(0.45, 0.4, 0.3, 1)
 text = "2"
 
 [node name="Slot3" type="PanelContainer" parent="ActionBar"]
+script = ExtResource("2_action")
 layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
 mouse_filter = 0
@@ -252,6 +257,7 @@ theme_override_colors/font_color = Color(0.45, 0.4, 0.3, 1)
 text = "3"
 
 [node name="Slot4" type="PanelContainer" parent="ActionBar"]
+script = ExtResource("2_action")
 layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
 mouse_filter = 0
@@ -270,6 +276,7 @@ theme_override_colors/font_color = Color(0.45, 0.4, 0.3, 1)
 text = "4"
 
 [node name="Slot5" type="PanelContainer" parent="ActionBar"]
+script = ExtResource("2_action")
 layout_mode = 2
 custom_minimum_size = Vector2(63, 63)
 mouse_filter = 0

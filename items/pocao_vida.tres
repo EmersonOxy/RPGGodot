@@ -12,3 +12,4 @@ rarity = 0
 stackable = true
 max_stack = 10
 icon_color = Color(0.9, 0.2, 0.2, 1)
+heal_amount = 35

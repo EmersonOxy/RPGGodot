@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://equipment_test.tscn" id="1"]
+[ext_resource type="Script" path="res://combat_text_preview.gd" id="2"]
+
+[node name="CombatTextPreview" instance=ExtResource("1")]
+
+[node name="CombatTextPreview" type="Node" parent="."]
+script = ExtResource("2")

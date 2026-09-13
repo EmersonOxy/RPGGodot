@@ -1,9 +1,13 @@
 extends CharacterBody3D
 
+const COMBAT_TEXT = preload("res://floating_combat_text.gd")
+
 signal health_changed(current: int, maximum: int)
 signal xp_changed(current: int, maximum: int)
 signal level_up(new_level: int)
 signal died
+signal stats_changed
+signal attack_executed(target: Node3D, interval: float)
 
 const ATTACK_DAMAGE: int = 20
 const ATTACK_INTERVAL: float = 1.0
@@ -11,7 +15,21 @@ const ATTACK_INTERVAL: float = 1.0
 @export var speed: float = 4.0
 @export var gravity: float = 20.0
 @export_range(0.8, 10.0) var attack_range: float = 1.5
-@export var max_health: int = 100
+@export var base_max_health: int = 100
+@export var base_attack_damage: int = ATTACK_DAMAGE
+@export var base_armor: int = 0
+@export var base_strength: int = 10
+@export var base_dexterity: int = 10
+@export var base_intelligence: int = 10
+var max_health: int = 100
+var attack_damage: int = ATTACK_DAMAGE
+var armor: int = 0
+var strength: int = 10
+var dexterity: int = 10
+var intelligence: int = 10
+var equipment_bonuses: Dictionary = {}
+var equipment: Node
+var action_bar: Node
 @export var manual_move_speed: float = 4.0
 @onready var navigation_agent: NavigationAgent3D = $NavigationAgent3D
 @onready var inventory: Node = $Inventory
@@ -34,7 +52,36 @@ var move_direction: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
 	add_to_group("player")
+	equipment = preload("res://equipment.gd").new()
+	equipment.name = "Equipment"
+	add_child(equipment)
+	equipment.changed.connect(recalculate_stats)
+	action_bar = preload("res://action_bar.gd").new()
+	action_bar.name = "ActionBar"
+	add_child(action_bar)
+	recalculate_stats()
 	health = max_health
+
+func recalculate_stats() -> void:
+	equipment_bonuses = equipment.get_bonuses()
+	attack_damage = maxi(0, base_attack_damage + equipment_bonuses.attack_damage)
+	armor = maxi(0, base_armor + equipment_bonuses.armor)
+	strength = base_strength + equipment_bonuses.strength
+	dexterity = base_dexterity + equipment_bonuses.dexterity
+	intelligence = base_intelligence + equipment_bonuses.intelligence
+	max_health = maxi(1, base_max_health + equipment_bonuses.max_health)
+	health = mini(health, max_health)
+	stats_changed.emit()
+	health_changed.emit(health, max_health)
+
+func use_consumable(item: ItemData) -> bool:
+	if is_dead or health <= 0 or health >= max_health or item == null or item.item_type != ItemData.ItemType.CONSUMABLE or item.equipment_slot != ItemData.EquipmentSlot.NONE or item.heal_amount <= 0:
+		return false
+	if not inventory.consume_one(item):
+		return false
+	health = mini(max_health, health + item.heal_amount)
+	health_changed.emit(health, max_health)
+	return true
 
 
 func gain_xp(amount: int) -> void:
@@ -229,9 +276,10 @@ func _physics_process(delta: float) -> void:
 	if is_in_attack_range() and approach_target.is_selected and attack_cooldown <= 0.0:
 		attack_cooldown = ATTACK_INTERVAL
 		var hp_before: int = approach_target.health
-		approach_target.take_damage(ATTACK_DAMAGE)
+		attack_executed.emit(approach_target, ATTACK_INTERVAL)
+		approach_target.take_damage(attack_damage)
 		# Dar XP por matar
-		if is_instance_valid(approach_target) and hp_before <= ATTACK_DAMAGE:
+		if is_instance_valid(approach_target) and hp_before <= attack_damage:
 			gain_xp(25)
 		elif not is_instance_valid(approach_target):
 			gain_xp(25)
@@ -240,9 +288,10 @@ func _physics_process(delta: float) -> void:
 		_try_collect()
 
 
-func take_damage(amount: int) -> void:
+func take_damage(amount: int, damage_type: int = COMBAT_TEXT.DamageType.PLAYER_DAMAGE, is_critical: bool = false) -> void:
 	if is_dead or health <= 0 or amount <= 0:
 		return
+	COMBAT_TEXT.show_damage_number(self, global_position + Vector3.UP * 1.6, mini(amount, health), damage_type, is_critical)
 	health = maxi(0, health - amount)
 	health_changed.emit(health, max_health)
 	if health == 0:

@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/player/bastard_sword__lowpoly.glb" id="1_st257"]
+
+[node name="Sword" type="Node3D" unique_id=880790735]
+
+[node name="SwordModel" type="Node3D" parent="." unique_id=1896124644 instance=ExtResource("1_st257")]
+transform = Transform3D(-0.02687936, 0.015098285, -0.008575655, -0.017234404, -0.025123755, 0.0097863395, -0.0021154897, 0.012838964, 0.029235011, 0, 0.16, 0)

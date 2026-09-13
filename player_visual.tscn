@@ -1,0 +1,32 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://player_visual.gd" id="1_visual"]
+[ext_resource type="PackedScene" path="res://assets/player/medieval_knight__sculpture__game_ready.glb" id="2_model"]
+[ext_resource type="AnimationNodeStateMachine" path="res://player_animation_state_machine.tres" id="3_machine"]
+[ext_resource type="PackedScene" path="res://player_sword.tscn" id="4_sword"]
+
+[node name="Visual" type="Node3D"]
+script = ExtResource("1_visual")
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
+position = Vector3(0, 0.02, 0)
+scale = Vector3(0.615, 0.615, 0.615)
+
+[node name="RightHandAttachment" type="BoneAttachment3D" parent="Model/Sketchfab_model/985ec9739c20496b97be5cb1a0679ffb_fbx/Object_2/RootNode/Object_4/GeneralSkeleton"]
+bone_name = "RightHand"
+
+[node name="SwordSocket" type="Node3D" parent="Model/Sketchfab_model/985ec9739c20496b97be5cb1a0679ffb_fbx/Object_2/RootNode/Object_4/GeneralSkeleton/RightHandAttachment"]
+position = Vector3(0, -0.12, 0.04)
+rotation = Vector3(0, 0, -1.5707963)
+
+[node name="Sword" parent="Model/Sketchfab_model/985ec9739c20496b97be5cb1a0679ffb_fbx/Object_2/RootNode/Object_4/GeneralSkeleton/RightHandAttachment/SwordSocket" instance=ExtResource("4_sword")]
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+root_node = NodePath("../Model")
+tree_root = ExtResource("3_machine")
+anim_player = NodePath("../Model/AnimationPlayer")
+active = false
+parameters/Walk/Speed/scale = 1.0
+parameters/Attack/Speed/scale = 2.3921569
+
+[editable path="Model"]

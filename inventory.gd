@@ -2,6 +2,50 @@ extends Node
 
 signal updated
 
+# Operações de equipamento não emitem sinais até o componente concluir a transação.
+func exchange_equipment(index: int, item: ItemData, quantity: int, previous: ItemData) -> bool:
+	if not matches_slot(index, item, quantity) or (previous != null and not can_add(previous, 1)):
+		return false
+	if previous != null:
+		var destination := -1
+		for i in SLOTS:
+			if _slots[i].item == null or (_slots[i].item == previous and previous.stackable and _slots[i].quantity < previous.max_stack):
+				destination = i
+				break
+		if destination < 0:
+			return false
+		_slots[destination] = {"item": previous, "quantity": _slots[destination].quantity + 1}
+	_slots[index].quantity -= 1
+	if _slots[index].quantity == 0:
+		_slots[index] = {"item": null, "quantity": 0}
+	return true
+
+func place_equipment(index: int, item: ItemData) -> bool:
+	if index < 0 or index >= SLOTS or item == null or _slots[index].item != null:
+		return false
+	_slots[index] = {"item": item, "quantity": 1}
+	return true
+
+func count_item(item: ItemData) -> int:
+	var count := 0
+	for slot in _slots:
+		if same_item_type(slot.item, item):
+			count += slot.quantity
+	return count
+
+func consume_one(item: ItemData) -> bool:
+	for i in SLOTS:
+		if same_item_type(_slots[i].item, item) and _slots[i].quantity > 0:
+			_slots[i].quantity -= 1
+			if _slots[i].quantity == 0:
+				_slots[i] = {"item": null, "quantity": 0}
+			updated.emit()
+			return true
+	return false
+
+func same_item_type(first: ItemData, second: ItemData) -> bool:
+	return first != null and second != null and ((not first.id.is_empty() and first.id == second.id) or first == second)
+
 const SLOTS := 20
 var _slots: Array[Dictionary] = []
 

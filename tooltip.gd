@@ -55,6 +55,9 @@ func _populate(item) -> void:
 	_type_label.text = item.get_type_name() if item.has_method("get_type_name") else ""
 	_rarity_label.text = item.get_rarity_name() if item.has_method("get_rarity_name") else ""
 	_desc_label.text = item.description if "description" in item else ""
+	var bonuses: String = item.get_bonus_text()
+	if not bonuses.is_empty():
+		_desc_label.text += "\n" + bonuses
 
 	var rarity_idx: int = item.rarity if "rarity" in item else 0
 	var rarity_color: Color = RARITY_COLORS.get(rarity_idx, RARITY_COLORS[0])

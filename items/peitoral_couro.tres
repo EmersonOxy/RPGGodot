@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://item_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "peitoral_couro"
+display_name = "Peitoral de Couro"
+description = "Equipamento de teste."
+item_type = 1
+equipment_slot = 4
+armor_bonus = 8
+max_health_bonus = 15

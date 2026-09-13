@@ -10,6 +10,9 @@ signal action_slot_selected(slot_index: int, slot_data: Variant)
 @onready var _xp_label: Label = $HPContainer/XPBar/XPLabel
 @onready var _action_bar: HBoxContainer = $ActionBar
 
+var _actions: Node
+var _feedback_tweens: Dictionary = {}
+
 var _hp_tween: Tween
 var _xp_tween: Tween
 var _hp_ghost_tween: Tween
@@ -31,8 +34,10 @@ var _style_slot_selected_hover: StyleBoxFlat
 
 
 func _ready() -> void:
+	add_to_group("player_hud")
 	var player := get_tree().get_first_node_in_group("player")
 	if player:
+		_actions = player.action_bar
 		if player.has_signal("health_changed"):
 			player.health_changed.connect(_on_hp_changed)
 		if player.has_signal("xp_changed"):
@@ -50,6 +55,10 @@ func _ready() -> void:
 		_level_label.text = str(player.level)
 
 	_setup_action_bar()
+	if _actions:
+		_actions.updated.connect(_refresh_actions)
+		_actions.used.connect(_on_action_used)
+		_refresh_actions()
 
 
 func _setup_action_bar() -> void:
@@ -68,6 +77,7 @@ func _setup_action_bar() -> void:
 			slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 			var idx := i - 1
+			slot.setup(_actions, idx)
 			slot.mouse_entered.connect(_on_action_slot_mouse_entered.bind(idx))
 			slot.mouse_exited.connect(_on_action_slot_mouse_exited.bind(idx))
 			slot.gui_input.connect(_on_action_slot_gui_input.bind(idx))
@@ -121,21 +131,10 @@ func _create_action_slot_styles() -> void:
 func _on_action_slot_mouse_entered(slot_idx: int) -> void:
 	_hovered_action_slot = slot_idx
 	_update_slot_style(slot_idx)
-
-	var data = _action_data[slot_idx] if slot_idx < _action_data.size() else null
-	if data != null:
-		var tooltip_node := get_tree().get_first_node_in_group("item_tooltip")
-		if tooltip_node and slot_idx < _action_slots.size():
-			var slot_rect := _action_slots[slot_idx].get_global_rect()
-			if data is ItemData:
-				tooltip_node.show_tooltip(data, slot_rect)
-			elif data is Dictionary and data.has("item"):
-				var qty: int = data.get("quantity", 1)
-				if qty > 1:
-					tooltip_node.show_tooltip_with_qty(data.item, qty, slot_rect)
-				else:
-					tooltip_node.show_tooltip(data.item, slot_rect)
-
+	var item: ItemData = _actions.get_item(slot_idx) if _actions else null
+	var tip := get_tree().get_first_node_in_group("item_tooltip")
+	if tip and item:
+		tip.show_tooltip_with_qty(item, _actions.inventory.count_item(item), _action_slots[slot_idx].get_global_rect())
 
 func _on_action_slot_mouse_exited(slot_idx: int) -> void:
 	if _hovered_action_slot == slot_idx:
@@ -148,10 +147,13 @@ func _on_action_slot_mouse_exited(slot_idx: int) -> void:
 
 
 func _on_action_slot_gui_input(event: InputEvent, slot_idx: int) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+	if not event is InputEventMouseButton or not event.pressed or get_tree().paused or _actions == null or _actions.get_parent().is_dead:
+		return
+	if event.button_index == MOUSE_BUTTON_RIGHT:
+		_actions.clear_slot(slot_idx)
+	elif event.button_index == MOUSE_BUTTON_LEFT:
 		toggle_action_slot_selection(slot_idx)
-		get_viewport().set_input_as_handled()
-
+	get_viewport().set_input_as_handled()
 
 func toggle_action_slot_selection(slot_idx: int) -> void:
 	if _selected_action_slot == slot_idx:
@@ -178,37 +180,45 @@ func get_selected_action_slot() -> int:
 
 
 func set_action_slot_data(slot_idx: int, data: Variant) -> void:
-	if slot_idx >= 0 and slot_idx < _action_data.size():
-		_action_data[slot_idx] = data
-		_update_slot_display(slot_idx)
-
+	if _actions == null:
+		return
+	if data == null:
+		_actions.clear_slot(slot_idx)
+	elif data is ItemData:
+		_actions.assign_item(slot_idx, data)
 
 func get_action_slot_data(slot_idx: int) -> Variant:
-	if slot_idx >= 0 and slot_idx < _action_data.size():
-		return _action_data[slot_idx]
-	return null
-
+	return _actions.get_item(slot_idx) if _actions else null
 
 func clear_action_slot(slot_idx: int) -> void:
 	set_action_slot_data(slot_idx, null)
 
+func _refresh_actions() -> void:
+	for i in _action_slots.size():
+		_action_data[i] = _actions.get_item(i)
+		_update_slot_display(i)
+	if _hovered_action_slot >= 0:
+		var tip := get_tree().get_first_node_in_group("item_tooltip")
+		if tip:
+			tip.hide_tooltip()
+		_on_action_slot_mouse_entered(_hovered_action_slot)
 
 func _update_slot_display(slot_idx: int) -> void:
-	if slot_idx < 0 or slot_idx >= _action_slots.size():
-		return
-	var data = _action_data[slot_idx]
-	var lbl: Label = _action_labels[slot_idx] if slot_idx < _action_labels.size() else null
-	if data == null:
-		if lbl:
-			lbl.text = str(slot_idx + 1)
-	else:
-		if data is ItemData:
-			if lbl:
-				lbl.text = "%d\n%s" % [slot_idx + 1, data.display_name.substr(0, 4)]
-		elif data is Dictionary and data.has("name"):
-			if lbl:
-				lbl.text = "%d\n%s" % [slot_idx + 1, str(data.name).substr(0, 4)]
+	var item: ItemData = _actions.get_item(slot_idx)
+	var label := _action_labels[slot_idx]
+	label.add_theme_font_size_override("font_size", 13 if item else 17)
+	label.text = "%d\n%s\nx%d" % [slot_idx + 1, item.display_name.left(6), _actions.inventory.count_item(item)] if item else str(slot_idx + 1)
+	_update_slot_style(slot_idx)
 
+func _on_action_used(index: int) -> void:
+	select_action_slot(index)
+	if _feedback_tweens.has(index):
+		_feedback_tweens[index].kill()
+	var slot := _action_slots[index]
+	slot.modulate = Color(1.7, 1.5, 0.8)
+	var tween := create_tween()
+	_feedback_tweens[index] = tween
+	tween.tween_property(slot, "modulate", Color.WHITE, 0.25)
 
 func _update_slot_style(slot_idx: int) -> void:
 	if slot_idx < 0 or slot_idx >= _action_slots.size():
@@ -241,24 +251,20 @@ func _update_slot_style(slot_idx: int) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if not is_visible_in_tree() or get_tree().paused:
+	if not is_visible_in_tree() or get_tree().paused or _actions == null or event.is_echo():
 		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		var idx := -1
-		if event.keycode >= KEY_1 and event.keycode <= KEY_5:
-			idx = event.keycode - KEY_1
-		elif event.keycode >= KEY_KP_1 and event.keycode <= KEY_KP_5:
-			idx = event.keycode - KEY_KP_1
-		if idx >= 0 and idx < _action_slots.size():
-			toggle_action_slot_selection(idx)
+	for i in 5:
+		if event.is_action_pressed("action_slot_%d" % (i + 1)):
+			_actions.use_slot(i)
 			get_viewport().set_input_as_handled()
-
+			return
 
 func _on_hp_changed(current: int, maximum: int) -> void:
 	var old_hp := _current_hp
 	_current_hp = current
 	_max_hp = maximum
 	_hp_bar.max_value = maximum
+	_hp_ghost.max_value = maximum
 	_hp_label.text = "%d / %d" % [current, maximum]
 
 	if _hp_tween:

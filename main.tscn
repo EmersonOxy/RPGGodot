@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" path="res://inventory_menu.tscn" id="12_invmenu"]
 [ext_resource type="PackedScene" path="res://tooltip.tscn" id="13_tooltip"]
 [ext_resource type="PackedScene" path="res://player_hud.tscn" id="14_playerhud"]
+[ext_resource type="PackedScene" path="res://player_visual.tscn" id="15_playervisual"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -611,8 +612,11 @@ radius = 0.35
 script = ExtResource("2b_inventory")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Player" unique_id=763971118]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 mesh = SubResource("Mesh_player")
+
+[node name="Visual" parent="Player" instance=ExtResource("15_playervisual")]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=42872186]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

@@ -12,3 +12,5 @@ rarity = 0
 stackable = false
 max_stack = 1
 icon_color = Color(0.7, 0.7, 0.7, 1)
+equipment_slot = 2
+attack_damage_bonus = 5

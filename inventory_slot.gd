@@ -3,7 +3,6 @@ extends PanelContainer
 var _item = null
 var _slot_index: int = -1
 var _inventory = null
-
 @onready var _label: Label = $VBox/Label
 @onready var _qty_label: Label = $VBox/QtyLabel
 
@@ -23,8 +22,13 @@ func setup(inventory, index: int) -> void:
 
 func _update_visual() -> void:
 	var slot = _inventory.get_slot(_slot_index)
-	_item = slot["item"]
-	var qty: int = slot["quantity"]
+	_display_item(slot.item, slot.quantity)
+	if get_global_rect().has_point(get_global_mouse_position()) and is_visible_in_tree():
+		_on_mouse_exited()
+		_on_mouse_entered()
+
+func _display_item(item: ItemData, qty: int) -> void:
+	_item = item
 	if _item:
 		_label.text = _item.display_name
 		_qty_label.text = "x%d" % qty if qty > 1 else ""
@@ -90,8 +94,16 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	return {"kind": "inventory_item", "inventory": _inventory, "index": _slot_index, "item": _item, "quantity": amount}
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
+	if not is_instance_valid(_inventory):
+		return false
+	if data is Dictionary and data.get("kind") == "equipment_item" and is_instance_valid(_inventory):
+		return _inventory.get_parent().equipment.can_unequip(data, _slot_index)
 	return data is Dictionary and data.get("kind") == "inventory_item" and data.get("inventory") == _inventory and not get_tree().paused and not _inventory.get_parent().is_dead and _inventory.matches_slot(data.index, data.item, data.quantity)
 
 func _drop_data(at_position: Vector2, data: Variant) -> void:
 	if _can_drop_data(at_position, data):
-		_inventory.move_item(data.index, _slot_index)
+		if data.kind == "equipment_item":
+			_inventory.get_parent().equipment.unequip_to_bag(data, _slot_index)
+		else:
+			_inventory.move_item(data.index, _slot_index)
+

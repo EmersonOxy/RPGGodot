@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://pause_menu.gd" id="1"]
+[ext_resource type="Script" path="res://pause_menu.gd" id="1_pause"]
+[ext_resource type="Script" path="res://video_settings.gd" id="2_video"]
 
 [node name="PauseMenu" type="Control"]
 process_mode = 3
@@ -10,7 +11,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1")
+script = ExtResource("1_pause")
 
 [node name="Dim" type="ColorRect" parent="."]
 layout_mode = 1
@@ -30,22 +31,23 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(560, 0)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
 layout_mode = 2
-theme_override_constants/margin_left = 48.0
-theme_override_constants/margin_top = 36.0
-theme_override_constants/margin_right = 48.0
-theme_override_constants/margin_bottom = 36.0
+theme_override_constants/margin_left = 40.0
+theme_override_constants/margin_top = 32.0
+theme_override_constants/margin_right = 40.0
+theme_override_constants/margin_bottom = 32.0
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 18.0
+theme_override_constants/separation = 16.0
 
 [node name="Title" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 54.0
+theme_override_font_sizes/font_size = 46.0
 text = "PAUSADO"
 horizontal_alignment = 1
 
@@ -60,11 +62,123 @@ text = "Configurações"
 [node name="SettingsBox" type="VBoxContainer" parent="Center/Panel/Margin/VBox"]
 visible = false
 layout_mode = 2
+theme_override_constants/separation = 16
+script = ExtResource("2_video")
 
-[node name="SettingsLabel" type="Label" parent="Center/Panel/Margin/VBox/SettingsBox"]
+[node name="Scroll" type="ScrollContainer" parent="Center/Panel/Margin/VBox/SettingsBox"]
+custom_minimum_size = Vector2(480, 260)
 layout_mode = 2
-text = "Configurações"
-horizontal_alignment = 1
+horizontal_scroll_mode = 0
+
+[node name="Grid" type="GridContainer" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="LblDisplayMode" type="Label" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Modo de exibição"
+
+[node name="OptDisplayMode" type="OptionButton" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LblResolution" type="Label" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Resolução"
+
+[node name="OptResolution" type="OptionButton" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LblVSync" type="Label" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "VSync"
+
+[node name="OptVSync" type="OptionButton" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LblFPS" type="Label" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Limite de FPS"
+
+[node name="OptFPS" type="OptionButton" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LblRenderScale" type="Label" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Escala de renderização"
+
+[node name="OptRenderScale" type="OptionButton" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LblQuality" type="Label" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Qualidade"
+
+[node name="OptQuality" type="OptionButton" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LblDefaultZoom" type="Label" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Zoom padrão"
+
+[node name="OptDefaultZoom" type="OptionButton" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LblScrollZoom" type="Label" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+layout_mode = 2
+text = "Zoom com scroll"
+
+[node name="OptScrollZoom" type="OptionButton" parent="Center/Panel/Margin/VBox/SettingsBox/Scroll/Grid"]
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SettingsStatus" type="Label" parent="Center/Panel/Margin/VBox/SettingsBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+
+[node name="ButtonsRow" type="HBoxContainer" parent="Center/Panel/Margin/VBox/SettingsBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BtnDefaults" type="Button" parent="Center/Panel/Margin/VBox/SettingsBox/ButtonsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Restaurar padrão"
+
+[node name="BtnCancel" type="Button" parent="Center/Panel/Margin/VBox/SettingsBox/ButtonsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cancelar"
+
+[node name="BtnApply" type="Button" parent="Center/Panel/Margin/VBox/SettingsBox/ButtonsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Aplicar"
 
 [node name="BtnMainMenu" type="Button" parent="Center/Panel/Margin/VBox"]
 disabled = true
@@ -74,4 +188,3 @@ text = "Menu Principal"
 [node name="BtnQuit" type="Button" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
 text = "Sair do Jogo"
-

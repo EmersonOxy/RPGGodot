@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+const COMBAT_TEXT = preload("res://floating_combat_text.gd")
+
 signal died(enemy: Node3D)
 
 enum State { IDLE, CHASE, ATTACK, RETURN }
@@ -60,9 +62,10 @@ func set_selected(value: bool) -> void:
 		_health_bar_3d.set_selected(value)
 
 
-func take_damage(amount: int) -> void:
+func take_damage(amount: int, damage_type: int = COMBAT_TEXT.DamageType.NORMAL, is_critical: bool = false) -> void:
 	if health <= 0 or amount <= 0:
 		return
+	COMBAT_TEXT.show_damage_number(self, global_position + Vector3.UP * 1.6, mini(amount, health), damage_type, is_critical)
 	health = maxi(0, health - amount)
 	if _health_bar_3d:
 		_health_bar_3d.update_hp(health, max_health)
