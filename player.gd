@@ -8,12 +8,20 @@ signal level_up(new_level: int)
 signal died
 signal stats_changed
 signal attack_executed(target: Node3D, interval: float)
-signal weapon_drawn_changed(drawn: bool)
+signal manual_attack_requested(world_point: Vector3)
+signal took_hit
 
-var weapon_drawn: bool = false
+var weapon_drawn: bool:
+	get:
+		var visual := get_node_or_null("Visual")
+		return visual != null and visual.is_weapon_in_hand()
 var unarmed_damage: int = 5
 const ATTACK_DAMAGE: int = 20
 const ATTACK_INTERVAL: float = 1.0
+const HIT_ATTACK_LOCK: float = 0.12
+const MANUAL_ATTACK_BUFFER: float = 0.25
+const MOVEMENT_SPEED_SCALE: float = 0.85
+const ARMED_MOVEMENT_SCALE: float = 0.80
 
 @export var speed: float = 4.0
 @export var gravity: float = 20.0
@@ -41,6 +49,12 @@ var is_dead: bool = false
 var approach_target: Node3D = null
 var attack_cooldown: float = 0.0
 var attack_hit_resolved: bool = false
+var _manual_attack_click: Variant = null
+var hit_attack_lock_timer: float = 0.0
+var _buffered_attack_point: Variant = null
+var _manual_attack_buffer_timer: float = 0.0
+var hit_recovery_timer: float = 0.0
+var run_multiplier: float = 1.5
 var collect_target: Node3D = null
 @export var pickup_range: float = 1.75
 var COLLECT_RANGE: float = 1.75
@@ -74,18 +88,16 @@ func _equip_starting_items() -> void:
 		equipment.changed.emit()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("toggle_weapon"):
-		var has_weapon = equipment.get_item(ItemData.EquipmentSlot.WEAPON) != null
-		if has_weapon:
-			weapon_drawn = not weapon_drawn
-			weapon_drawn_changed.emit(weapon_drawn)
+	if event.is_action_pressed("manual_attack") and not event.is_echo():
+		if is_dead or get_tree().paused or get_viewport().gui_is_dragging() or get_viewport().gui_get_hovered_control() != null:
+			return
+		_manual_attack_click = get_viewport().get_mouse_position()
+		get_viewport().set_input_as_handled()
+	if not is_dead and event.is_action_pressed("toggle_weapon") and not event.is_echo():
+		$Visual.toggle_weapon()
 
 func recalculate_stats() -> void:
 	equipment_bonuses = equipment.get_bonuses()
-	var has_weapon = equipment.get_item(ItemData.EquipmentSlot.WEAPON) != null
-	if not has_weapon and weapon_drawn:
-		weapon_drawn = false
-		weapon_drawn_changed.emit(weapon_drawn)
 		
 	attack_damage = maxi(0, base_attack_damage + equipment_bonuses.attack_damage)
 	armor = maxi(0, base_armor + equipment_bonuses.armor)
@@ -183,6 +195,10 @@ func _enter_manual_mode() -> void:
 		navigation_agent.target_position = global_position
 
 
+func get_movement_speed_multiplier() -> float:
+	return MOVEMENT_SPEED_SCALE * (ARMED_MOVEMENT_SCALE if weapon_drawn else 1.0)
+
+
 func _manual_move(manual_input: Vector2) -> void:
 	var fwd := Vector3(0.0, 0.0, -1.0)
 	var right := Vector3(1.0, 0.0, 0.0)
@@ -197,8 +213,12 @@ func _manual_move(manual_input: Vector2) -> void:
 	var direction := right * manual_input.x - fwd * manual_input.y
 	if direction.length() > 1.0:
 		direction = direction.normalized()
-	velocity.x = direction.x * manual_move_speed
-	velocity.z = direction.z * manual_move_speed
+		
+	var running = Input.is_action_pressed("run")
+	var current_speed = manual_move_speed * get_movement_speed_multiplier() * (run_multiplier if running else 1.0)
+	
+	velocity.x = direction.x * current_speed
+	velocity.z = direction.z * current_speed
 
 	is_moving = true
 	move_direction = direction.normalized()
@@ -242,6 +262,11 @@ func _try_collect() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	hit_recovery_timer = maxf(0.0, hit_recovery_timer - delta)
+	hit_attack_lock_timer = maxf(0.0, hit_attack_lock_timer - delta)
+	_manual_attack_buffer_timer = maxf(0.0, _manual_attack_buffer_timer - delta)
+	if _manual_attack_buffer_timer <= 0.0:
+		_buffered_attack_point = null
 	attack_cooldown = maxf(0.0, attack_cooldown - delta)
 	velocity.x = 0.0
 	velocity.z = 0.0
@@ -253,7 +278,17 @@ func _physics_process(delta: float) -> void:
 	if is_dead:
 		move_and_slide()
 		_update_anim_state()
+		_manual_attack_click = null
+		_buffered_attack_point = null
 		return
+
+	if _manual_attack_click != null:
+		var point: Variant = _mouse_attack_point(_manual_attack_click)
+		_manual_attack_click = null
+		if point is Vector3:
+			request_manual_attack(point)
+	if _buffered_attack_point != null:
+		_try_start_manual_attack(_buffered_attack_point)
 
 	var map_ready := NavigationServer3D.map_get_iteration_id(navigation_agent.get_navigation_map()) > 0
 	if approach_target != null:
@@ -276,11 +311,14 @@ func _physics_process(delta: float) -> void:
 			navigation_agent.target_position = global_position
 		move_mode = MoveMode.CLICK_MOVE
 		if map_ready and not is_in_attack_range() and not navigation_agent.is_navigation_finished():
+			var running = Input.is_action_pressed("run")
+			var current_speed = speed * get_movement_speed_multiplier() * (run_multiplier if running else 1.0)
+			
 			var next_point := navigation_agent.get_next_path_position()
 			var direction := next_point - global_position
 			direction.y = 0.0
 			if direction.length() > 0.01:
-				var movement := direction.normalized() * minf(speed, direction.length() / delta)
+				var movement := direction.normalized() * minf(current_speed, direction.length() / delta)
 				velocity.x = movement.x
 				velocity.z = movement.z
 
@@ -288,7 +326,7 @@ func _physics_process(delta: float) -> void:
 				var to_target := navigation_agent.target_position - global_position
 				to_target.y = 0.0
 				if to_target.length() > 0.2:
-					var advance := to_target.normalized() * minf(speed, to_target.length() / delta)
+					var advance := to_target.normalized() * minf(current_speed, to_target.length() / delta)
 					velocity.x = advance.x
 					velocity.z = advance.z
 			_update_anim_state()
@@ -296,7 +334,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_update_anim_state()
 
-	if is_in_attack_range() and approach_target.is_selected and attack_cooldown <= 0.0:
+	if _buffered_attack_point == null and is_in_attack_range() and approach_target.is_selected and attack_cooldown <= 0.0 and $Visual.can_start_manual_attack():
 		attack_cooldown = ATTACK_INTERVAL
 		attack_hit_resolved = false
 		attack_executed.emit(approach_target, ATTACK_INTERVAL)
@@ -306,8 +344,10 @@ func _physics_process(delta: float) -> void:
 
 
 func take_damage(amount: int, damage_type: int = COMBAT_TEXT.DamageType.PLAYER_DAMAGE, is_critical: bool = false) -> void:
-	if is_dead or health <= 0 or amount <= 0:
+	if is_dead or health <= 0 or amount <= 0 or hit_recovery_timer > 0.0:
 		return
+	hit_recovery_timer = 0.25
+	took_hit.emit()
 	COMBAT_TEXT.show_damage_number(self, global_position + Vector3.UP * 1.6, mini(amount, health), damage_type, is_critical)
 	health = maxi(0, health - amount)
 	health_changed.emit(health, max_health)
@@ -321,23 +361,90 @@ func take_damage(amount: int, damage_type: int = COMBAT_TEXT.DamageType.PLAYER_D
 		move_direction = Vector3.ZERO
 		died.emit()
 
-func _on_attack_impact() -> void:
-	if attack_hit_resolved:
+func _on_attack_impact(target: Node3D = null, manual_direction: Vector3 = Vector3.ZERO) -> void:
+	if is_dead or attack_hit_resolved:
 		return
 	attack_hit_resolved = true
 	
-	if not is_instance_valid(approach_target):
+	if not manual_direction.is_zero_approx():
+		target = _find_manual_attack_target(manual_direction)
+	elif target == null:
+		target = approach_target
+	if not is_instance_valid(target):
 		return
 		
-	var dist = global_position.distance_to(approach_target.global_position)
+	var dist = global_position.distance_to(target.global_position)
 	if dist > attack_range * 1.5:
 		return
 		
 	var final_damage = attack_damage if weapon_drawn else unarmed_damage
-	var hp_before: int = approach_target.health
-	approach_target.take_damage(final_damage)
+	var hp_before: int = target.health
+	target.take_damage(final_damage)
 	
-	if is_instance_valid(approach_target) and hp_before <= final_damage:
+	if is_instance_valid(target) and hp_before <= final_damage:
 		gain_xp(25)
-	elif not is_instance_valid(approach_target):
+	elif not is_instance_valid(target):
 		gain_xp(25)
+
+
+func request_manual_attack(world_point: Vector3) -> bool:
+	if is_dead or get_tree().paused:
+		return false
+	# One slot: a newer click replaces the aim and expiry, never adds a queued attack.
+	_buffered_attack_point = world_point
+	_manual_attack_buffer_timer = MANUAL_ATTACK_BUFFER
+	return _try_start_manual_attack(world_point)
+
+
+func _try_start_manual_attack(world_point: Vector3) -> bool:
+	if is_dead or get_tree().paused or attack_cooldown > 0.0 or not $Visual.can_start_manual_attack():
+		return false
+	_buffered_attack_point = null
+	_manual_attack_buffer_timer = 0.0
+	attack_cooldown = ATTACK_INTERVAL
+	attack_hit_resolved = false
+	manual_attack_requested.emit(world_point)
+	return true
+
+
+func _mouse_attack_point(screen_position: Vector2) -> Variant:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return null
+	var origin := camera.project_ray_origin(screen_position)
+	var direction := camera.project_ray_normal(screen_position)
+	# Environment only: enemies, loot and the Player cannot intercept the aiming ray.
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * camera.far, 3)
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty():
+		return hit.position
+	# Empty sky/background still provides a horizontal aiming point at Player height.
+	return Plane(Vector3.UP, global_position.y).intersects_ray(origin, direction)
+
+
+func _find_manual_attack_target(direction: Vector3) -> Node3D:
+	if _can_hit_manually(approach_target, direction):
+		return approach_target
+	var closest: Node3D = null
+	var best_distance := INF
+	for candidate in get_tree().get_nodes_in_group("enemies"):
+		if candidate is Node3D and _can_hit_manually(candidate, direction):
+			var distance := global_position.distance_squared_to(candidate.global_position)
+			if distance < best_distance:
+				best_distance = distance
+				closest = candidate
+	return closest
+
+
+func _can_hit_manually(target: Node3D, direction: Vector3) -> bool:
+	if not is_instance_valid(target) or not target.is_in_group("enemies") or not target.has_method("take_damage") or target.get("health") == null or target.health <= 0:
+		return false
+	var difference := target.global_position - global_position
+	if difference.length() > attack_range or absf(difference.y) > 0.35:
+		return false
+	difference.y = 0.0
+	# A simple frontal cone; one target per impact. No weapon hitbox system.
+	if not difference.is_zero_approx() and difference.normalized().dot(direction) < 0.5:
+		return false
+	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.9, target.global_position + Vector3.UP * 0.9, 3)
+	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()

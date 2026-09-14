@@ -10,6 +10,7 @@ enum State { IDLE, CHASE, ATTACK, RETURN }
 @export_range(0.8, 10.0) var attack_range: float = 2.0
 @export var attack_damage: int = 10
 @export_range(0.1, 10.0) var attack_interval: float = 1.5
+@export_range(0.0, 2.0) var enemy_attack_recovery: float = 0.55
 @export var aggro_range: float = 8.0
 @export var leash_range: float = 15.0
 @export var move_speed: float = 2.5
@@ -19,6 +20,8 @@ enum State { IDLE, CHASE, ATTACK, RETURN }
 var health: int = 100
 var is_selected := false
 var attack_cooldown: float = 0.0
+var attack_recovery_timer: float = 0.0
+var hit_recovery_timer: float = 0.0
 var target: Node3D = null
 var state: State = State.IDLE
 var home_position: Vector3
@@ -63,8 +66,9 @@ func set_selected(value: bool) -> void:
 
 
 func take_damage(amount: int, damage_type: int = COMBAT_TEXT.DamageType.NORMAL, is_critical: bool = false) -> void:
-	if health <= 0 or amount <= 0:
+	if health <= 0 or amount <= 0 or hit_recovery_timer > 0.0:
 		return
+	hit_recovery_timer = 0.25
 	COMBAT_TEXT.show_damage_number(self, global_position + Vector3.UP * 1.6, mini(amount, health), damage_type, is_critical)
 	health = maxi(0, health - amount)
 	if _health_bar_3d:
@@ -111,7 +115,11 @@ func _find_surface_position(pos: Vector3) -> Vector3:
 
 
 func _physics_process(delta: float) -> void:
-	attack_cooldown = maxf(0.0, attack_cooldown - delta)
+	hit_recovery_timer = maxf(0.0, hit_recovery_timer - delta)
+	# Recovery is additional to the existing cooldown, including fractional frames.
+	var recovery_elapsed := minf(attack_recovery_timer, delta)
+	attack_recovery_timer = maxf(0.0, attack_recovery_timer - delta)
+	attack_cooldown = maxf(0.0, attack_cooldown - (delta - recovery_elapsed))
 	velocity.x = 0.0
 	velocity.z = 0.0
 	if not is_on_floor():
@@ -183,12 +191,13 @@ func _chase(delta: float) -> void:
 
 func _attack() -> void:
 	_stop()
-	if attack_cooldown > 0.0:
+	if attack_cooldown > 0.0 or attack_recovery_timer > 0.0:
 		return
 	if not target.has_method("take_damage"):
 		return
 	attack_cooldown = attack_interval
 	target.take_damage(attack_damage)
+	attack_recovery_timer = enemy_attack_recovery
 
 
 func _return_home(delta: float) -> void:

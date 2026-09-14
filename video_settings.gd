@@ -72,11 +72,8 @@ func _populate_options() -> void:
 
 	# Zoom padrão
 	opt_default_zoom.clear()
-	opt_default_zoom.add_item("Muito próximo")
-	opt_default_zoom.add_item("Próximo")
-	opt_default_zoom.add_item("Normal")
-	opt_default_zoom.add_item("Distante")
-	opt_default_zoom.add_item("Muito distante")
+	for zoom_name in _ds.ZOOM_NAMES:
+		opt_default_zoom.add_item(zoom_name)
 	opt_scroll_zoom.add_item("Ligado")
 	opt_scroll_zoom.add_item("Desligado")
 
@@ -162,7 +159,7 @@ func _on_defaults_pressed() -> void:
 	opt_fps.selected = 4 # Sem limite
 	opt_render_scale.selected = 2 # 100%
 	opt_quality.selected = 2 # Alta
-	opt_default_zoom.selected = 2 # Normal
+	opt_default_zoom.selected = _ds.DEFAULT_ZOOM_INDEX # Normal (19)
 	opt_scroll_zoom.selected = 0
 	_update_mode_hint()
 	status.text = "Padrões selecionados. Clique em Aplicar para salvar."

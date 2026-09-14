@@ -42,7 +42,7 @@ func _open_settings() -> void:
 	_btn_settings.hide()
 	_btn_main_menu.hide()
 	_btn_quit.hide()
-	_title.text = "CONFIGURAÇÕES DE VÍDEO"
+	_title.text = "CONFIGURAÇÕES"
 	if _settings_box:
 		_settings_box.load_from_settings()
 		_settings_box.show()

@@ -2,9 +2,12 @@ extends Node
 ## Gerenciador global de configurações de vídeo e exibição com persistência em user://settings.cfg.
 
 signal settings_applied
+signal interface_settings_applied
 
 const CONFIG_PATH := "user://settings.cfg"
 const SECTION_VIDEO := "video"
+const SECTION_INTERFACE := "interface"
+const CURSORS = preload("res://cursor_catalog.gd")
 
 const DISPLAY_MODES: Array[String] = ["Janela", "Janela sem bordas", "Tela cheia"]
 const RESOLUTIONS: Array[Vector2i] = [
@@ -17,7 +20,7 @@ const RESOLUTIONS: Array[Vector2i] = [
 const FPS_LIMITS: Array[int] = [30, 60, 120, 144, 0] # 0 = Sem limite
 const RENDER_SCALES: Array[float] = [0.5, 0.75, 1.0]
 const QUALITY_NAMES: Array[String] = ["Baixa", "Média", "Alta"]
-const ZOOM_NAMES: Array[String] = ["Muito próximo", "Próximo", "Normal", "Distante", "Muito distante"]
+const ZOOM_NAMES: Array[String] = ["Inspeção (6)", "Detalhe (8)", "Bem próximo (10)", "Muito próximo (12)", "Próximo (15)", "Normal (19)", "Distante (23)", "Muito distante (27)"]
 
 # Valores padrão de fábrica
 const DEFAULT_DISPLAY_MODE := 0 # Janela
@@ -26,7 +29,7 @@ const DEFAULT_VSYNC := true
 const DEFAULT_FPS_LIMIT := 0 # Sem limite
 const DEFAULT_RENDER_SCALE := 1.0 # 100%
 const DEFAULT_QUALITY := 2 # Alta
-const DEFAULT_ZOOM_INDEX := 2 # Normal (19.0)
+const DEFAULT_ZOOM_INDEX := 5 # Normal (19.0)
 
 # Estado ativo
 var display_mode: int = DEFAULT_DISPLAY_MODE
@@ -37,6 +40,8 @@ var render_scale: float = DEFAULT_RENDER_SCALE
 var quality: int = DEFAULT_QUALITY
 var default_zoom_index: int = DEFAULT_ZOOM_INDEX
 var zoom_with_scroll := true
+var cursor_style := "default"
+var show_controls := true
 var _last_applied_zoom := DEFAULT_ZOOM_INDEX
 
 
@@ -49,7 +54,8 @@ func _ready() -> void:
 func get_defaults() -> Dictionary:
 	return {"display_mode": DEFAULT_DISPLAY_MODE, "resolution": DEFAULT_RESOLUTION,
 		"vsync": DEFAULT_VSYNC, "fps_limit": DEFAULT_FPS_LIMIT, "render_scale": DEFAULT_RENDER_SCALE,
-		"quality": DEFAULT_QUALITY, "default_zoom_index": DEFAULT_ZOOM_INDEX, "zoom_with_scroll": true}
+		"quality": DEFAULT_QUALITY, "default_zoom_index": DEFAULT_ZOOM_INDEX, "zoom_with_scroll": true,
+		"cursor_style": "default", "show_controls": true}
 
 func get_settings() -> Dictionary:
 	var values := {}
@@ -65,9 +71,10 @@ func sanitize(values: Dictionary) -> Dictionary:
 	var res: Vector2i = valid.resolution
 	if res.x < 320 or res.y < 240 or res.x > 16384 or res.y > 16384:
 		valid.resolution = DEFAULT_RESOLUTION
-	for pair in [["display_mode", [0,1,2]], ["fps_limit", FPS_LIMITS], ["render_scale", RENDER_SCALES], ["quality", [0,1,2]], ["default_zoom_index", [0,1,2,3,4]]]:
+	for pair in [["display_mode", [0,1,2]], ["fps_limit", FPS_LIMITS], ["render_scale", RENDER_SCALES], ["quality", [0,1,2]], ["default_zoom_index", [0,1,2,3,4,5,6,7]]]:
 		if not valid[pair[0]] in pair[1]:
 			valid[pair[0]] = get_defaults()[pair[0]]
+	valid.cursor_style = CURSORS.STYLES[CURSORS.index_for(valid.cursor_style)].id
 	return valid
 
 func read_settings(path: String = CONFIG_PATH) -> Dictionary:
@@ -76,11 +83,16 @@ func read_settings(path: String = CONFIG_PATH) -> Dictionary:
 		return get_defaults()
 	var values := get_defaults()
 	for key in values:
-		values[key] = cfg.get_value(SECTION_VIDEO, key, values[key])
+		var section := SECTION_INTERFACE if key in ["cursor_style", "show_controls"] else SECTION_VIDEO
+		values[key] = cfg.get_value(section, key, values[key])
 	var width = cfg.get_value(SECTION_VIDEO, "resolution_width", DEFAULT_RESOLUTION.x)
 	var height = cfg.get_value(SECTION_VIDEO, "resolution_height", DEFAULT_RESOLUTION.y)
 	if width is int and height is int:
 		values.resolution = Vector2i(width, height)
+	if cfg.has_section_key(SECTION_VIDEO, "default_zoom_index") and cfg.get_value(SECTION_VIDEO, "zoom_levels_version", 1) == 1:
+		var old_index = values.default_zoom_index
+		if old_index is int and old_index >= 0 and old_index <= 4:
+			values.default_zoom_index = old_index + 3
 	return sanitize(values)
 
 func load_settings() -> void:
@@ -101,7 +113,9 @@ func _save_values(values: Dictionary, path: String) -> Error:
 	var valid := sanitize(values)
 	for key in valid:
 		if key != "resolution":
-			cfg.set_value(SECTION_VIDEO, key, valid[key])
+			var section := SECTION_INTERFACE if key in ["cursor_style", "show_controls"] else SECTION_VIDEO
+			cfg.set_value(section, key, valid[key])
+	cfg.set_value(SECTION_VIDEO, "zoom_levels_version", 2)
 	cfg.set_value(SECTION_VIDEO, "resolution_width", valid.resolution.x)
 	cfg.set_value(SECTION_VIDEO, "resolution_height", valid.resolution.y)
 	return cfg.save(path)
@@ -125,6 +139,23 @@ func get_resolutions() -> Array[Vector2i]:
 		result.append(resolution)
 	return result
 
+
+func apply_interface_settings(style_id: String, controls_visible: bool, path: String = CONFIG_PATH) -> Error:
+	var values := get_settings()
+	values.cursor_style = style_id
+	values.show_controls = controls_visible
+	var error := _save_values(values, path)
+	if error != OK:
+		return error
+	_set_values(values)
+	_apply_interface_settings()
+	return OK
+
+
+func _apply_interface_settings() -> void:
+	CURSORS.apply(cursor_style)
+	interface_settings_applied.emit()
+
 func restore_defaults() -> void:
 	display_mode = DEFAULT_DISPLAY_MODE
 	resolution = DEFAULT_RESOLUTION
@@ -134,6 +165,8 @@ func restore_defaults() -> void:
 	quality = DEFAULT_QUALITY
 	default_zoom_index = DEFAULT_ZOOM_INDEX
 	zoom_with_scroll = true
+	cursor_style = "default"
+	show_controls = true
 	save_settings()
 	apply_all_settings()
 
@@ -181,6 +214,7 @@ func apply_all_settings() -> void:
 
 	_last_applied_zoom = default_zoom_index
 	settings_applied.emit()
+	_apply_interface_settings()
 
 
 func _apply_quality(q_level: int) -> void:
@@ -220,4 +254,5 @@ func _fit_window(window: Window, requested_size: Vector2i) -> void:
 		if usable.size.x > 0 and usable.size.y > 0:
 			fitted = requested_size.min((usable.size - decorations).max(Vector2i.ONE))
 	window.size = fitted
+
 

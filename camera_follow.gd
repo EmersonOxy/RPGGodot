@@ -3,8 +3,8 @@ extends Camera3D
 ## plataformas não dão mais solavanco vertical. Rotação nunca muda.
 ## Suporta zoom ortográfico suave com níveis discretos estilo Project Zomboid.
 
-const ZOOM_LEVELS: Array[float] = [12.0, 15.0, 19.0, 23.0, 27.0]
-const DEFAULT_ZOOM_INDEX: int = 2
+const ZOOM_LEVELS: Array[float] = [6.0, 8.0, 10.0, 12.0, 15.0, 19.0, 23.0, 27.0]
+const DEFAULT_ZOOM_INDEX: int = 5
 
 ## Quanto maior, mais rápida a transição vertical (5 ≈ suave sem atraso).
 @export var vertical_smooth_speed: float = 5.0
@@ -120,3 +120,4 @@ func _is_mouse_over_scroll_consumer() -> bool:
 			return true
 		curr = curr.get_parent()
 	return true
+
