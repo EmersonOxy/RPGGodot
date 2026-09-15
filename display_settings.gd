@@ -11,7 +11,7 @@ const CURSORS = preload("res://cursor_catalog.gd")
 
 const DISPLAY_MODES: Array[String] = ["Janela", "Janela sem bordas", "Tela cheia"]
 const RESOLUTIONS: Array[Vector2i] = [
-	Vector2i(1280, 720),
+		Vector2i(1280, 720),
 	Vector2i(1366, 768),
 	Vector2i(1600, 900),
 	Vector2i(1920, 1080),
@@ -23,7 +23,7 @@ const QUALITY_NAMES: Array[String] = ["Baixa", "Média", "Alta"]
 const ZOOM_NAMES: Array[String] = ["Inspeção (6)", "Detalhe (8)", "Bem próximo (10)", "Muito próximo (12)", "Próximo (15)", "Normal (19)", "Distante (23)", "Muito distante (27)"]
 
 # Valores padrão de fábrica
-const DEFAULT_DISPLAY_MODE := 0 # Janela
+const DEFAULT_DISPLAY_MODE := 2 # Full
 const DEFAULT_RESOLUTION := Vector2i(1920, 1080)
 const DEFAULT_VSYNC := true
 const DEFAULT_FPS_LIMIT := 0 # Sem limite
@@ -254,5 +254,3 @@ func _fit_window(window: Window, requested_size: Vector2i) -> void:
 		if usable.size.x > 0 and usable.size.y > 0:
 			fitted = requested_size.min((usable.size - decorations).max(Vector2i.ONE))
 	window.size = fitted
-
-
