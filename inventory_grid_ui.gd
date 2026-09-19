@@ -64,18 +64,8 @@ func refresh() -> void:
 		
 		var bg = Panel.new()
 		bg.set_anchors_preset(PRESET_FULL_RECT)
-		var style = StyleBoxFlat.new()
-		style.bg_color = p.item.icon_color * 0.3
-		style.border_width_left = 1
-		style.border_width_top = 1
-		style.border_width_right = 1
-		style.border_width_bottom = 1
-		style.border_color = p.item.icon_color
-		style.corner_radius_top_left = 3
-		style.corner_radius_top_right = 3
-		style.corner_radius_bottom_left = 3
-		style.corner_radius_bottom_right = 3
-		bg.add_theme_stylebox_override("panel", style)
+		_apply_item_border(bg, p.item, Acquisitions.is_new(p.item))
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		item_rect.add_child(bg)
 		bg.show_behind_parent = true
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -111,11 +101,14 @@ func refresh() -> void:
 			item_rect.add_child(qty_label)
 		
 		item_rect.mouse_filter = Control.MOUSE_FILTER_STOP
+		item_rect.mouse_entered.connect(_on_item_hovered.bind(item_rect))
 		var script = GDScript.new()
 		script.source_code = """
 extends TextureRect
 var placement: Dictionary
 var inventory: Node
+var border_panel: Panel
+var owner_grid: Node
 func _get_drag_data(at_position: Vector2) -> Variant:
 	var data = {"kind": "inventory_item", "inventory": inventory, "placement": placement, "item": placement.item, "quantity": placement.quantity}
 	var preview = TextureRect.new()
@@ -125,14 +118,54 @@ func _get_drag_data(at_position: Vector2) -> Variant:
 	preview.size = size
 	preview.modulate = Color(1, 1, 1, 0.7)
 	set_drag_preview(preview)
+	Acquisitions.clear_new(placement.item)
+	if is_instance_valid(border_panel) and is_instance_valid(owner_grid):
+		owner_grid.restyle_border(border_panel, placement.item, false)
 	return data
 """
 		script.reload()
 		item_rect.set_script(script)
 		item_rect.set("placement", p)
 		item_rect.set("inventory", inventory)
+		item_rect.set("border_panel", bg)
+		item_rect.set("owner_grid", self)
 		
 		_items_parent.add_child(item_rect)
+
+func _apply_item_border(panel: Panel, item: ItemData, is_new: bool) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = item.icon_color * (0.45 if is_new else 0.3)
+	var width := 2 if is_new else 1
+	style.border_width_left = width
+	style.border_width_top = width
+	style.border_width_right = width
+	style.border_width_bottom = width
+	style.border_color = Color(1.0, 0.85, 0.3, 1.0) if is_new else item.icon_color
+	style.corner_radius_top_left = 3
+	style.corner_radius_top_right = 3
+	style.corner_radius_bottom_left = 3
+	style.corner_radius_bottom_right = 3
+	panel.add_theme_stylebox_override("panel", style)
+
+
+func restyle_border(panel: Panel, item: ItemData, is_new: bool) -> void:
+	if is_instance_valid(panel):
+		_apply_item_border(panel, item, is_new)
+
+
+func _on_item_hovered(item_rect: Control) -> void:
+	if not is_instance_valid(item_rect):
+		return
+	var placement: Dictionary = item_rect.get("placement")
+	if placement.is_empty():
+		return
+	var item: ItemData = placement.item
+	if not Acquisitions.is_new(item):
+		return
+	Acquisitions.clear_new(item)
+	var border_panel: Panel = item_rect.get("border_panel")
+	restyle_border(border_panel, item, false)
+
 
 func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
 	if typeof(data) != TYPE_DICTIONARY: return false

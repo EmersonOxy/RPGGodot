@@ -40,6 +40,10 @@ var _style_slot_selected_hover: StyleBoxFlat
 func _ready() -> void:
 	add_to_group("player_hud")
 	_setup_damage_vignette()
+	var ds := get_node_or_null("/root/DisplaySettings")
+	if ds:
+		ds.interface_settings_applied.connect(_on_interface_settings)
+		_on_interface_settings()
 	var player := get_tree().get_first_node_in_group("player")
 	if player:
 		_setup_stamina(player)
@@ -67,6 +71,12 @@ func _ready() -> void:
 		_actions.updated.connect(_refresh_actions)
 		_actions.used.connect(_on_action_used)
 		_refresh_actions()
+
+
+func _on_interface_settings() -> void:
+	var ds := get_node_or_null("/root/DisplaySettings")
+	if ds:
+		visible = ds.hud_visible
 
 
 func _setup_stamina(player: Node) -> void:

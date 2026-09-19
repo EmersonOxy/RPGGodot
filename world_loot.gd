@@ -316,6 +316,9 @@ func _exit_tree() -> void:
 func try_pickup(inventory) -> bool:
 	if _collected or inventory == null or item == null:
 		return false
+	if not inventory.can_add(item, quantity):
+		return false
+	Acquisitions.register_acquisition(item, quantity)
 	if inventory.add_item(item, quantity):
 		_collected = true
 		if _is_hovered:
@@ -323,4 +326,5 @@ func try_pickup(inventory) -> bool:
 		_stop_pulse()
 		queue_free()
 		return true
+	Acquisitions.clear_new(item)
 	return false

@@ -46,6 +46,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			_pause_game()
 		get_viewport().set_input_as_handled()
+	if event.is_action_pressed("toggle_hud"):
+		var ds := get_node_or_null("/root/DisplaySettings")
+		if ds:
+			ds.apply_interface_settings(ds.cursor_style, ds.show_controls, not ds.hud_visible, ds.cursor_size)
+		get_viewport().set_input_as_handled()
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_I:
 			_toggle_inventory()

@@ -44,6 +44,8 @@ var default_zoom_index: int = DEFAULT_ZOOM_INDEX
 var zoom_with_scroll := true
 var cursor_style := "default"
 var show_controls := true
+var hud_visible := true
+var cursor_size := 1.0
 var master_volume := 1.0
 var effects_volume := 1.0
 var sword_volume := 1.0
@@ -62,7 +64,7 @@ func get_defaults() -> Dictionary:
 	return {"display_mode": DEFAULT_DISPLAY_MODE, "resolution": DEFAULT_RESOLUTION,
 		"vsync": DEFAULT_VSYNC, "fps_limit": DEFAULT_FPS_LIMIT, "render_scale": DEFAULT_RENDER_SCALE,
 		"quality": DEFAULT_QUALITY, "default_zoom_index": DEFAULT_ZOOM_INDEX, "zoom_with_scroll": true,
-		"cursor_style": "default", "show_controls": true,
+		"cursor_style": "default", "show_controls": true, "hud_visible": true, "cursor_size": 1.0,
 		"master_volume": 1.0, "effects_volume": 1.0, "sword_volume": 1.0, "steps_volume": 1.0, "audio_muted": false}
 
 func get_settings() -> Dictionary:
@@ -83,6 +85,7 @@ func sanitize(values: Dictionary) -> Dictionary:
 		if not valid[pair[0]] in pair[1]:
 			valid[pair[0]] = get_defaults()[pair[0]]
 	valid.cursor_style = CURSORS.STYLES[CURSORS.index_for(valid.cursor_style)].id
+	valid.cursor_size = clampf(valid.cursor_size, 0.5, 2.0)
 	for key in AUDIO_DEFAULTS:
 		if key != "audio_muted":
 			valid[key] = clampf(valid[key], 0.0, 1.0) if is_finite(valid[key]) else 1.0
@@ -91,7 +94,7 @@ func sanitize(values: Dictionary) -> Dictionary:
 func _section_for(key: String) -> String:
 	if AUDIO_DEFAULTS.has(key):
 		return "audio"
-	return SECTION_INTERFACE if key in ["cursor_style", "show_controls"] else SECTION_VIDEO
+	return SECTION_INTERFACE if key in ["cursor_style", "show_controls", "hud_visible", "cursor_size"] else SECTION_VIDEO
 
 func read_settings(path: String = CONFIG_PATH) -> Dictionary:
 	var cfg := ConfigFile.new()
@@ -156,10 +159,12 @@ func get_resolutions() -> Array[Vector2i]:
 	return result
 
 
-func apply_interface_settings(style_id: String, controls_visible: bool, path: String = CONFIG_PATH) -> Error:
+func apply_interface_settings(style_id: String, controls_visible: bool, hud_visible_value: bool = true, cursor_size_value: float = 1.0, path: String = CONFIG_PATH) -> Error:
 	var values := get_settings()
 	values.cursor_style = style_id
 	values.show_controls = controls_visible
+	values.hud_visible = hud_visible_value
+	values.cursor_size = cursor_size_value
 	var error := _save_values(values, path)
 	if error != OK:
 		return error
@@ -168,8 +173,13 @@ func apply_interface_settings(style_id: String, controls_visible: bool, path: St
 	return OK
 
 
+func set_cursor_size(value: float) -> void:
+	cursor_size = clampf(value, 0.5, 2.0)
+	_apply_interface_settings()
+
+
 func _apply_interface_settings() -> void:
-	CURSORS.apply(cursor_style)
+	CURSORS.apply(cursor_style, cursor_size)
 	interface_settings_applied.emit()
 
 func restore_defaults() -> void:
@@ -183,6 +193,8 @@ func restore_defaults() -> void:
 	zoom_with_scroll = true
 	cursor_style = "default"
 	show_controls = true
+	hud_visible = true
+	cursor_size = 1.0
 	for key in AUDIO_DEFAULTS:
 		set(key, AUDIO_DEFAULTS[key])
 	save_settings()

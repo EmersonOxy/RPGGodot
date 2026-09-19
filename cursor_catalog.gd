@@ -18,11 +18,12 @@ static func index_for(style_id: String) -> int:
 			return i
 	return 0
 
-static func apply(style_id: String) -> void:
+static func apply(style_id: String, scale: float = 1.0) -> void:
 	var style: Dictionary = STYLES[index_for(style_id)]
 	if style.texture == null:
 		Input.set_custom_mouse_cursor(null, Input.CURSOR_ARROW)
 		return
+	var factor: float = 0.5 * clampf(scale, 0.5, 2.0)
 	var image: Image = style.texture.get_image()
-	image.resize(maxi(1, roundi(image.get_width() * 0.5)), maxi(1, roundi(image.get_height() * 0.5)), Image.INTERPOLATE_NEAREST)
-	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(image), Input.CURSOR_ARROW, style.hotspot * 0.5)
+	image.resize(maxi(1, roundi(image.get_width() * factor)), maxi(1, roundi(image.get_height() * factor)), Image.INTERPOLATE_NEAREST)
+	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(image), Input.CURSOR_ARROW, style.hotspot * factor)

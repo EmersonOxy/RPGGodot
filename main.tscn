@@ -16,7 +16,8 @@
 [ext_resource type="PackedScene" path="res://tooltip.tscn" id="13_tooltip"]
 [ext_resource type="PackedScene" uid="uid://bdqwamcquu25t" path="res://player_hud.tscn" id="14_playerhud"]
 [ext_resource type="PackedScene" uid="uid://gwlq8hoyo05y" path="res://player_visual.tscn" id="15_playervisual"]
-[ext_resource type="Script" path="res://player_audio.gd" id="16_audio"]
+[ext_resource type="Script" uid="uid://bb8xwxnultnfs" path="res://player_audio.gd" id="16_audio"]
+[ext_resource type="Script" uid="uid://c4fg3daut5gxi" path="res://loot_notification.gd" id="17_lootnotif"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -639,7 +640,7 @@ radius = 0.35
 [node name="Inventory" type="Node" parent="Player" unique_id=1840198795]
 script = ExtResource("2b_inventory")
 
-[node name="Audio" type="Node" parent="Player"]
+[node name="Audio" type="Node" parent="Player" unique_id=278782767]
 script = ExtResource("16_audio")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Player" unique_id=763971118]
@@ -692,15 +693,12 @@ offset_left = -300.0
 offset_top = 180.0
 offset_right = 300.0
 offset_bottom = 225.0
+
+[node name="LootNotification" type="Control" parent="Interface" unique_id=1248563913]
+layout_mode = 3
+anchors_preset = 0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 3
-theme_override_font_sizes/font_size = 27
-text = "Inventário cheio"
-horizontal_alignment = 1
-vertical_alignment = 1
+script = ExtResource("17_lootnotif")
 
 [node name="UIManager" type="Node" parent="Interface" unique_id=1642097558]
 script = ExtResource("11_uimanager")

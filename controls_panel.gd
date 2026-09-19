@@ -27,6 +27,8 @@ func _ready() -> void:
 	refresh_controls()
 	if Engine.is_editor_hint():
 		return
+	# Destaque visual reduzido: dicas discretas no canto.
+	modulate = Color(1, 1, 1, 0.72)
 	_settings = get_node("/root/DisplaySettings")
 	_settings.interface_settings_applied.connect(_update_visibility)
 	_update_visibility()
@@ -114,5 +116,5 @@ func _add_text(parent: Control, text: String) -> void:
 	var label := Label.new()
 	label.text = text
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.modulate = Color(0.82, 0.85, 0.91)
+	label.modulate = Color(0.68, 0.72, 0.8)
 	parent.add_child(label)
