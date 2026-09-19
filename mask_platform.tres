@@ -1,11 +1,14 @@
-[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://dykg0netg4vi5"]
 
-[ext_resource type="Shader" path="res://occluder_mask.gdshader" id="1"]
+[ext_resource type="Shader" uid="uid://gsh1udrkifgf" path="res://occluder_mask.gdshader" id="1"]
 
 [resource]
+render_priority = 0
 shader = ExtResource("1")
 shader_parameter/albedo_color = Color(0.45, 0.56, 0.43, 1)
 shader_parameter/roughness = 1.0
-shader_parameter/inner_radius = 1.4
-shader_parameter/outer_radius = 2.6
-shader_parameter/min_alpha = 0.3
+shader_parameter/player_position = Vector3(0, 0, 0)
+shader_parameter/inner_radius = 4.2
+shader_parameter/outer_radius = 10.5
+shader_parameter/min_alpha = 0.2
+shader_parameter/occlusion_strength = 0.0

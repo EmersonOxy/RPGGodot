@@ -8,9 +8,10 @@ render_mode depth_prepass_alpha;
 uniform vec4 albedo_color : source_color = vec4(0.65, 0.69, 0.66, 1.0);
 uniform float roughness : hint_range(0.0, 1.0) = 1.0;
 uniform vec3 player_position = vec3(0.0, 0.0, 0.0);
-uniform float inner_radius = 1.2;
-uniform float outer_radius = 2.2;
-uniform float min_alpha : hint_range(0.0, 1.0) = 0.25;
+// World-space radii: broad transparent center followed by a wide smooth feather.
+uniform float inner_radius = 3.6;
+uniform float outer_radius = 9.0;
+uniform float min_alpha : hint_range(0.0, 1.0) = 0.20;
 uniform float occlusion_strength : hint_range(0.0, 1.0) = 0.0;
 
 varying vec3 world_pos;

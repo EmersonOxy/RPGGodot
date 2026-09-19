@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cfgcyjobf28mg" path="res://main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://cerfwlslaons" path="res://inventory.gd" id="2b_inventory"]
 [ext_resource type="Script" uid="uid://cb665xfpm6k44" path="res://player.gd" id="2_player"]
-[ext_resource type="NavigationMesh" uid="uid://072grsiva00" path="res://world_navigation.tres" id="3_navigation"]
+[ext_resource type="NavigationMesh" path="res://world_navigation.tres" id="3_navigation"]
 [ext_resource type="ArrayMesh" path="res://ramp_mesh.tres" id="4_ramp"]
 [ext_resource type="PackedScene" path="res://enemy_dummy.tscn" id="5_enemy"]
 [ext_resource type="Script" uid="uid://b4r4fmimepvkb" path="res://occlusion_fade.gd" id="6_fade"]
@@ -18,7 +18,7 @@
 [ext_resource type="PackedScene" uid="uid://gwlq8hoyo05y" path="res://player_visual.tscn" id="15_playervisual"]
 [ext_resource type="Script" uid="uid://bb8xwxnultnfs" path="res://player_audio.gd" id="16_audio"]
 [ext_resource type="Script" uid="uid://c4fg3daut5gxi" path="res://loot_notification.gd" id="17_lootnotif"]
-[ext_resource type="Script" path="res://loot_label_manager.gd" id="18_lblmgr"]
+[ext_resource type="Script" uid="uid://bfyi1tqroaj8g" path="res://loot_label_manager.gd" id="18_lblmgr"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -38,16 +38,6 @@ size = Vector3(100, 0.4, 100)
 
 [sub_resource type="BoxShape3D" id="Shape_ground"]
 size = Vector3(100, 0.4, 100)
-
-[sub_resource type="StandardMaterial3D" id="Material_platform"]
-albedo_color = Color(0.45, 0.56, 0.43, 1)
-
-[sub_resource type="BoxMesh" id="Mesh_platform"]
-material = SubResource("Material_platform")
-size = Vector3(6, 2, 5)
-
-[sub_resource type="BoxShape3D" id="Shape_platform"]
-size = Vector3(6, 2, 5)
 
 [sub_resource type="StandardMaterial3D" id="Material_props"]
 albedo_color = Color(0.65, 0.69, 0.66, 1)
@@ -87,6 +77,16 @@ size = Vector3(0.75, 2, 3.5)
 [sub_resource type="ConvexPolygonShape3D" id="Shape_stairwedge"]
 points = PackedVector3Array(-3, 0, -1.75, -3, 0, 1.75, 3, 0, -1.75, 3, 0, 1.75, 3, 2, -1.75, 3, 2, 1.75)
 
+[sub_resource type="StandardMaterial3D" id="Material_platform"]
+albedo_color = Color(0.68995565, 0.49896574, 0.29506415, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_platform"]
+material = SubResource("Material_platform")
+size = Vector3(6, 2, 5)
+
+[sub_resource type="BoxShape3D" id="Shape_platform"]
+size = Vector3(6, 2, 5)
+
 [sub_resource type="StandardMaterial3D" id="Material_ramp"]
 albedo_color = Color(0.68, 0.58, 0.4, 1)
 
@@ -98,7 +98,7 @@ material = SubResource("Material_props")
 size = Vector3(2, 1.5, 4.0671387)
 
 [sub_resource type="BoxShape3D" id="Shape_block"]
-size = Vector3(2, 3.138794, 2)
+size = Vector3(2, 1.4927368, 3.9831429)
 
 [sub_resource type="CylinderMesh" id="Mesh_column"]
 material = SubResource("Material_props")
@@ -110,6 +110,13 @@ radial_segments = 8
 [sub_resource type="CylinderShape3D" id="Shape_column"]
 height = 3.0
 radius = 0.7
+
+[sub_resource type="BoxMesh" id="Mesh_roof"]
+material = SubResource("Material_props")
+size = Vector3(5, 0.4, 6.5)
+
+[sub_resource type="BoxShape3D" id="Shape_roof"]
+size = Vector3(5, 0.4, 6.5)
 
 [sub_resource type="BoxMesh" id="Mesh_wall_h"]
 material = SubResource("Material_props")
@@ -124,20 +131,6 @@ size = Vector3(0.5, 3, 6)
 
 [sub_resource type="BoxShape3D" id="Shape_wall_v"]
 size = Vector3(0.5, 3, 6)
-
-[sub_resource type="BoxMesh" id="Mesh_roof"]
-material = SubResource("Material_props")
-size = Vector3(5, 0.4, 6.5)
-
-[sub_resource type="BoxShape3D" id="Shape_roof"]
-size = Vector3(5, 0.4, 6.5)
-
-[sub_resource type="BoxMesh" id="Mesh_lintel"]
-material = SubResource("Material_props")
-size = Vector3(3, 0.4, 0.59765625)
-
-[sub_resource type="BoxShape3D" id="Shape_lintel"]
-size = Vector3(3, 0.4, 0.6123047)
 
 [sub_resource type="StandardMaterial3D" id="Material_player"]
 albedo_color = Color(0.95, 0.58, 0.18, 1)
@@ -180,177 +173,291 @@ mesh = SubResource("Mesh_ground")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Ground" unique_id=589552467]
 shape = SubResource("Shape_ground")
 
-[node name="Platform" type="StaticBody3D" parent="NavigationRegion3D" unique_id=458052083 groups=["walkable"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1, -5)
-collision_mask = 4
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Platform" unique_id=668175475]
-material_override = ExtResource("8_maskplat")
-mesh = SubResource("Mesh_platform")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Platform/MeshInstance3D" unique_id=1564812914]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
-material_override = ExtResource("8_maskplat")
-mesh = SubResource("Mesh_platform")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Platform" unique_id=1716028225]
-shape = SubResource("Shape_platform")
-
-[node name="CollisionShapeExtension" type="CollisionShape3D" parent="NavigationRegion3D/Platform" unique_id=2101055335]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -5)
-shape = SubResource("Shape_platform")
-
-[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Platform" unique_id=670519355]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
-visible = false
-height = 2.0
-vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
-affect_navigation_mesh = true
-carve_navigation_mesh = true
-avoidance_enabled = false
-
-[node name="ExcludeExtension" type="NavigationObstacle3D" parent="NavigationRegion3D/Platform" unique_id=384703534]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, -5)
-visible = false
-height = 2.0
-vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
-affect_navigation_mesh = true
-carve_navigation_mesh = true
-avoidance_enabled = false
-
-[node name="Platform2" type="StaticBody3D" parent="NavigationRegion3D" unique_id=297132379 groups=["walkable"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1, -10)
-collision_mask = 4
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Platform2" unique_id=751043997]
-material_override = ExtResource("8_maskplat")
-mesh = SubResource("Mesh_platform")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Platform2" unique_id=867905862]
-shape = SubResource("Shape_platform")
-
-[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Platform2" unique_id=1445046489]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
-visible = false
-height = 2.0
-vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
-affect_navigation_mesh = true
-carve_navigation_mesh = true
-avoidance_enabled = false
-
-[node name="Step1" type="Node3D" parent="NavigationRegion3D" unique_id=1196508307]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.625, 0.125, -10)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Step1" unique_id=1738498002]
-mesh = SubResource("Mesh_stair1")
-
-[node name="Step2" type="Node3D" parent="NavigationRegion3D/Step1" unique_id=233522428]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0.125, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Step1/Step2" unique_id=2080374553]
-mesh = SubResource("Mesh_stair2")
-
-[node name="Step3" type="Node3D" parent="NavigationRegion3D/Step1" unique_id=833734348]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0.25, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Step1/Step3" unique_id=2090361636]
-mesh = SubResource("Mesh_stair3")
-
-[node name="Step4" type="Node3D" parent="NavigationRegion3D/Step1" unique_id=1347156078]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0.375, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Step1/Step4" unique_id=1474591377]
-mesh = SubResource("Mesh_stair4")
-
-[node name="Step5" type="Node3D" parent="NavigationRegion3D/Step1" unique_id=583262402]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.5, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Step1/Step5" unique_id=88077730]
-mesh = SubResource("Mesh_stair5")
-
-[node name="Step6" type="Node3D" parent="NavigationRegion3D/Step1" unique_id=1210947576]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.75, 0.625, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Step1/Step6" unique_id=976043282]
-mesh = SubResource("Mesh_stair6")
-
-[node name="Step7" type="Node3D" parent="NavigationRegion3D/Step1" unique_id=775573770]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.75, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Step1/Step7" unique_id=384691729]
-mesh = SubResource("Mesh_stair7")
-
-[node name="Step8" type="Node3D" parent="NavigationRegion3D/Step1" unique_id=116634504]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.25, 0.875, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Step1/Step8" unique_id=2136871027]
-mesh = SubResource("Mesh_stair8")
-
-[node name="StepSlope" type="StaticBody3D" parent="NavigationRegion3D" unique_id=657872081 groups=["walkable"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, -10)
-collision_mask = 4
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/StepSlope" unique_id=1771621098]
-shape = SubResource("Shape_stairwedge")
-
-[node name="Ramp" type="StaticBody3D" parent="NavigationRegion3D" unique_id=401883386 groups=["walkable"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 0.5)
-collision_mask = 4
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Ramp" unique_id=1307055590]
-material_override = SubResource("Material_ramp")
-mesh = ExtResource("4_ramp")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Ramp" unique_id=1828996040]
-shape = SubResource("Shape_ramp")
-
-[node name="Platform3" type="StaticBody3D" parent="NavigationRegion3D" unique_id=1035011966 groups=["walkable"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1, -8)
-collision_mask = 4
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Platform3" unique_id=991603305]
-material_override = ExtResource("8_maskplat")
-mesh = SubResource("Mesh_platform")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Platform3" unique_id=1215483332]
-shape = SubResource("Shape_platform")
-
-[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Platform3" unique_id=1310275055]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
-visible = false
-height = 2.0
-vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
-affect_navigation_mesh = true
-carve_navigation_mesh = true
-avoidance_enabled = false
-
-[node name="RampEast" type="StaticBody3D" parent="NavigationRegion3D" unique_id=1354317174 groups=["walkable"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -2.5)
-collision_mask = 4
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/RampEast" unique_id=959320420]
-material_override = SubResource("Material_ramp")
-mesh = ExtResource("4_ramp")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/RampEast" unique_id=2103893815]
-shape = SubResource("Shape_ramp")
-
 [node name="Props" type="Node3D" parent="NavigationRegion3D" unique_id=1532760370]
 
-[node name="Block" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1726073311]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0.75, -5)
+[node name="Escada" type="Node3D" parent="NavigationRegion3D/Props" unique_id=1196508307]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.625, 0.125, -10)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada" unique_id=1738498002]
+mesh = SubResource("Mesh_stair1")
+
+[node name="Step2" type="Node3D" parent="NavigationRegion3D/Props/Escada" unique_id=233522428]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0.125, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada/Step2" unique_id=2080374553]
+mesh = SubResource("Mesh_stair2")
+
+[node name="Step3" type="Node3D" parent="NavigationRegion3D/Props/Escada" unique_id=833734348]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0.25, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada/Step3" unique_id=2090361636]
+mesh = SubResource("Mesh_stair3")
+
+[node name="Step4" type="Node3D" parent="NavigationRegion3D/Props/Escada" unique_id=1347156078]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0.375, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada/Step4" unique_id=1474591377]
+mesh = SubResource("Mesh_stair4")
+
+[node name="Step5" type="Node3D" parent="NavigationRegion3D/Props/Escada" unique_id=583262402]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.5, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada/Step5" unique_id=88077730]
+mesh = SubResource("Mesh_stair5")
+
+[node name="Step6" type="Node3D" parent="NavigationRegion3D/Props/Escada" unique_id=1210947576]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.75, 0.625, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada/Step6" unique_id=976043282]
+mesh = SubResource("Mesh_stair6")
+
+[node name="Step7" type="Node3D" parent="NavigationRegion3D/Props/Escada" unique_id=775573770]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.75, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada/Step7" unique_id=384691729]
+mesh = SubResource("Mesh_stair7")
+
+[node name="Step8" type="Node3D" parent="NavigationRegion3D/Props/Escada" unique_id=116634504]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.25, 0.875, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada/Step8" unique_id=2136871027]
+mesh = SubResource("Mesh_stair8")
+
+[node name="StepSlope" type="StaticBody3D" parent="NavigationRegion3D/Props/Escada" unique_id=657872081 groups=["walkable"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.625, -0.125, 0)
+collision_mask = 4
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Escada/StepSlope" unique_id=1771621098]
+shape = SubResource("Shape_stairwedge")
+
+[node name="Escada2" type="Node3D" parent="NavigationRegion3D/Props" unique_id=356425135]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 11.7181425, 0.10412133, -2.1970234)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada2" unique_id=794947249]
+mesh = SubResource("Mesh_stair1")
+
+[node name="Step2" type="Node3D" parent="NavigationRegion3D/Props/Escada2" unique_id=680318112]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0.125, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada2/Step2" unique_id=1300576763]
+mesh = SubResource("Mesh_stair2")
+
+[node name="Step3" type="Node3D" parent="NavigationRegion3D/Props/Escada2" unique_id=1959880450]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0.25, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada2/Step3" unique_id=2018065962]
+mesh = SubResource("Mesh_stair3")
+
+[node name="Step4" type="Node3D" parent="NavigationRegion3D/Props/Escada2" unique_id=1153995731]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0.375, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada2/Step4" unique_id=1833349627]
+mesh = SubResource("Mesh_stair4")
+
+[node name="Step5" type="Node3D" parent="NavigationRegion3D/Props/Escada2" unique_id=95412214]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0.5, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada2/Step5" unique_id=1570287627]
+mesh = SubResource("Mesh_stair5")
+
+[node name="Step6" type="Node3D" parent="NavigationRegion3D/Props/Escada2" unique_id=431732383]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.75, 0.625, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada2/Step6" unique_id=813828424]
+mesh = SubResource("Mesh_stair6")
+
+[node name="Step7" type="Node3D" parent="NavigationRegion3D/Props/Escada2" unique_id=103401087]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0.75, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada2/Step7" unique_id=2130880027]
+mesh = SubResource("Mesh_stair7")
+
+[node name="Step8" type="Node3D" parent="NavigationRegion3D/Props/Escada2" unique_id=2039751329]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.25, 0.875, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Escada2/Step8" unique_id=1566061791]
+mesh = SubResource("Mesh_stair8")
+
+[node name="StepSlope" type="StaticBody3D" parent="NavigationRegion3D/Props/Escada2" unique_id=1471628550 groups=["walkable"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.625, -0.125, 0)
+collision_mask = 4
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Escada2/StepSlope" unique_id=1844623868]
+shape = SubResource("Shape_stairwedge")
+
+[node name="Plataforma 1" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=297132379 groups=["walkable"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 3.0080898, -3, 1, -14.958428)
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Plataforma 1" unique_id=751043997]
+material_override = ExtResource("8_maskplat")
+mesh = SubResource("Mesh_platform")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Plataforma 1" unique_id=867905862]
+shape = SubResource("Shape_platform")
+
+[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Plataforma 1" unique_id=1445046489]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+visible = false
+height = 2.0
+vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
+affect_navigation_mesh = true
+carve_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Plataforma 2" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1106551377 groups=["walkable"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 3.5176141, 3.5515823, 1, -14.478409)
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Plataforma 2" unique_id=1558472434]
+material_override = ExtResource("8_maskplat")
+mesh = SubResource("Mesh_platform")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Plataforma 2" unique_id=1773222364]
+shape = SubResource("Shape_platform")
+
+[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Plataforma 2" unique_id=1732937537]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+visible = false
+height = 2.0
+vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
+affect_navigation_mesh = true
+carve_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Plataforma 5" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=808158213 groups=["walkable"]]
+transform = Transform3D(-4.371139e-08, 0, 3.5176141, 0, 1, 0, -1, 0, -1.537598e-07, 3.5515823, 2.3631344, -24.263628)
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Plataforma 5" unique_id=1982902424]
+mesh = SubResource("Mesh_platform")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Plataforma 5" unique_id=956256804]
+shape = SubResource("Shape_platform")
+
+[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Plataforma 5" unique_id=107802593]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+visible = false
+height = 2.0
+vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
+affect_navigation_mesh = true
+carve_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Plataforma 4" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=223282146 groups=["walkable"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 2.946134, 10.658752, 1, -15.162813)
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Plataforma 4" unique_id=1989753416]
+material_override = ExtResource("8_maskplat")
+mesh = SubResource("Mesh_platform")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Plataforma 4" unique_id=133341714]
+shape = SubResource("Shape_platform")
+
+[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Plataforma 4" unique_id=1222508434]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+visible = false
+height = 2.0
+vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
+affect_navigation_mesh = true
+carve_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Ponte 1" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1940094692 groups=["walkable"]]
+transform = Transform3D(0.32286835, 0, 0, 0, 0.060271718, 0, 0, 0, 0.450868, 0.2617054, 1.9366683, -10.152096)
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Ponte 1" unique_id=1442284312]
+mesh = SubResource("Mesh_platform")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Ponte 1" unique_id=818199040]
+shape = SubResource("Shape_platform")
+
+[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Ponte 1" unique_id=1240572329]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+visible = false
+height = 2.0
+vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
+affect_navigation_mesh = true
+carve_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Ponte 2" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=199336041 groups=["walkable"]]
+transform = Transform3D(0.32286835, 0, 0, 0, 0.060271718, 0, 0, 0, 0.450868, 7.2378745, 1.9366683, -10.152096)
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Ponte 2" unique_id=1949629301]
+mesh = SubResource("Mesh_platform")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Ponte 2" unique_id=169315536]
+shape = SubResource("Shape_platform")
+
+[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Ponte 2" unique_id=995512178]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+visible = false
+height = 2.0
+vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
+affect_navigation_mesh = true
+carve_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Plataforma 3" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1452280973 groups=["walkable"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.9190443, 14.255716, 0.58236027, 12.142514)
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Plataforma 3" unique_id=1918173049]
+material_override = ExtResource("8_maskplat")
+mesh = SubResource("Mesh_platform")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Plataforma 3" unique_id=837135508]
+shape = SubResource("Shape_platform")
+
+[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Plataforma 3" unique_id=124389984]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+visible = false
+height = 2.0
+vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
+affect_navigation_mesh = true
+carve_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Rampa 1" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1354317174 groups=["walkable"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 1.3784275, -18.306044)
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Rampa 1" unique_id=959320420]
+material_override = SubResource("Material_ramp")
+mesh = ExtResource("4_ramp")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Rampa 1" unique_id=2103893815]
+shape = SubResource("Shape_ramp")
+
+[node name="Rampa 2" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1917373782 groups=["walkable"]]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 20.233067, -0.4596436, 12.177745)
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Rampa 2" unique_id=1640744895]
+material_override = SubResource("Material_ramp")
+mesh = ExtResource("4_ramp")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Rampa 2" unique_id=577136349]
+shape = SubResource("Shape_ramp")
+
+[node name="Teto" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1726073311]
+transform = Transform3D(12.961227, 0, 0, 0, 0.24273354, 0, 0, 0, 2.592334, -1.228801, 6.781766, -19.819025)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Block" unique_id=96194412]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Teto" unique_id=96194412]
 transform = Transform3D(1.0000001, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000001, 0, 0.1069082, 0)
 material_override = ExtResource("7_maskprops")
 mesh = SubResource("Mesh_block")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Block" unique_id=988329474]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Teto" unique_id=988329474]
 shape = SubResource("Shape_block")
 
-[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Block" unique_id=359839828]
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Teto" unique_id=359839828]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
 visible = false
 height = 3.0
@@ -358,19 +465,19 @@ vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
 affect_navigation_mesh = true
 avoidance_enabled = false
 
-[node name="BlockDeck" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1833771100]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 2.7, -11.5)
+[node name="Cabos" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1112890399]
+transform = Transform3D(0.0046828515, 0, 0, 0, 0.009873559, 0, 0, 0, 1.0470862, 11.570224, 2.9120078, 12.16212)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/BlockDeck" unique_id=1466635969]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos" unique_id=1039987687]
 material_override = ExtResource("7_maskprops")
 mesh = SubResource("Mesh_block")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/BlockDeck" unique_id=2097647878]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos" unique_id=526504005]
 shape = SubResource("Shape_block")
 
-[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/BlockDeck" unique_id=1308197524]
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos" unique_id=1687303978]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
 visible = false
 height = 3.0
@@ -378,19 +485,19 @@ vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
 affect_navigation_mesh = true
 avoidance_enabled = false
 
-[node name="BlockWest" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=579385361]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0.7, 12)
+[node name="BlockWest2" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos" unique_id=208480490]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -65.10141, 0)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/BlockWest" unique_id=1282229503]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos/BlockWest2" unique_id=379501013]
 material_override = ExtResource("7_maskprops")
 mesh = SubResource("Mesh_block")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/BlockWest" unique_id=1952102637]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos/BlockWest2" unique_id=1357321613]
 shape = SubResource("Shape_block")
 
-[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/BlockWest" unique_id=294557238]
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos/BlockWest2" unique_id=257416575]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
 visible = false
 height = 3.0
@@ -398,19 +505,19 @@ vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
 affect_navigation_mesh = true
 avoidance_enabled = false
 
-[node name="BlockWest3" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=930504463]
-transform = Transform3D(0.53456753, 0, 0, 0, 2.6435308, 0, 0, 0, 7.3879457, 1.1292303, 1.8464738, 7.5316496)
+[node name="BlockWest3" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos" unique_id=1927260626]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -51.195404, 0)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/BlockWest3" unique_id=953644138]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos/BlockWest3" unique_id=1797197898]
 material_override = ExtResource("7_maskprops")
 mesh = SubResource("Mesh_block")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/BlockWest3" unique_id=1238548965]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos/BlockWest3" unique_id=309764072]
 shape = SubResource("Shape_block")
 
-[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/BlockWest3" unique_id=701640585]
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos/BlockWest3" unique_id=868078603]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
 visible = false
 height = 3.0
@@ -418,16 +525,19 @@ vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
 affect_navigation_mesh = true
 avoidance_enabled = false
 
-[node name="BlockWest2" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1380734536]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1399364, 0.7647768, 12.916622)
+[node name="BlockWest4" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos" unique_id=37249298]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -33.35623, 0)
 collision_layer = 2
 collision_mask = 4
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/BlockWest2" unique_id=1653039472]
-transform = Transform3D(1, 0, 0, 0, 2.014934, 0, 0, 0, 4.654343, 0, 1.6510309, 0)
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos/BlockWest4" unique_id=1609455435]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos/BlockWest4" unique_id=363922476]
 shape = SubResource("Shape_block")
 
-[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/BlockWest2" unique_id=1491715265]
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos/BlockWest4" unique_id=1777526486]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
 visible = false
 height = 3.0
@@ -435,19 +545,261 @@ vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
 affect_navigation_mesh = true
 avoidance_enabled = false
 
-[node name="ColumnEast" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=20564985]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 1.5, 2)
+[node name="BlockWest5" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos" unique_id=575445864]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -16.517853, 0)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/ColumnEast" unique_id=183767327]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos/BlockWest5" unique_id=1370781637]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos/BlockWest5" unique_id=1374860865]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos/BlockWest5" unique_id=1376397171]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Cabos2" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=9968906]
+transform = Transform3D(6.824775e-05, 0, 1.285758, 0, 0.009873559, 0, -0.0046982314, 0, 0.018677248, 14.212996, 2.9120078, 14.302874)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos2" unique_id=1034908291]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos2" unique_id=679172495]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos2" unique_id=1898158613]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="BlockWest2" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos2" unique_id=1552465763]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -65.10141, 0)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest2" unique_id=961390116]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest2" unique_id=1117390788]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest2" unique_id=849299922]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="BlockWest3" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos2" unique_id=841157575]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -51.195404, 0)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest3" unique_id=1361879778]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest3" unique_id=1328838537]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest3" unique_id=1908038289]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="BlockWest4" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos2" unique_id=893786446]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -33.35623, 0)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest4" unique_id=120529167]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest4" unique_id=937826984]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest4" unique_id=359462687]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="BlockWest5" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos2" unique_id=1650090775]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -16.517853, 0)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest5" unique_id=178538596]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest5" unique_id=1782606934]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos2/BlockWest5" unique_id=754669859]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Cabos3" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=2134672822]
+transform = Transform3D(6.826875e-05, 0, 1.313586, 0, 0.009873559, 0, -0.0046996777, 0, 0.019081485, 14.212996, 2.9120078, 10.059473)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos3" unique_id=1255645502]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos3" unique_id=2014100943]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos3" unique_id=716960499]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="BlockWest2" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos3" unique_id=369150536]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -65.10141, 0)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest2" unique_id=1170267104]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest2" unique_id=1598849258]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest2" unique_id=1052774938]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="BlockWest3" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos3" unique_id=1978506624]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -51.195404, 0)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest3" unique_id=566512606]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest3" unique_id=48198612]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest3" unique_id=1232708270]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="BlockWest4" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos3" unique_id=342997494]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -33.35623, 0)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest4" unique_id=1142711332]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest4" unique_id=1711478741]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest4" unique_id=657185600]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="BlockWest5" type="StaticBody3D" parent="NavigationRegion3D/Props/Cabos3" unique_id=508665590]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -16.517853, 0)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest5" unique_id=930913868]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_block")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest5" unique_id=1598656513]
+shape = SubResource("Shape_block")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Cabos3/BlockWest5" unique_id=2141602704]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+visible = false
+height = 3.0
+vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Pilares" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1656634579]
+transform = Transform3D(0.1601358, 0, 0, 0, 0.9999994, 0, 0, 0, 0.15060386, 16.762138, 1.8102787, 9.885022)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Pilares" unique_id=1750151600]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.0000001, 0, 0, 1.3266373)
 material_override = ExtResource("7_maskprops")
 mesh = SubResource("Mesh_column")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/ColumnEast" unique_id=114038367]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Pilares" unique_id=35498437]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.0000001, 0, 0, 1.3266373)
 shape = SubResource("Shape_column")
 
-[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/ColumnEast" unique_id=1422658402]
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Pilares" unique_id=903212453]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.0000001, 0, -1.6, 1.3266373)
+visible = false
+height = 4.0
+vertices = PackedVector3Array(-0.7, 0, -0.7, 0.7, 0, -0.7, 0.7, 0, 0.7, -0.7, 0, 0.7)
+affect_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="ColumnEast2" type="StaticBody3D" parent="NavigationRegion3D/Props/Pilares" unique_id=1787367188]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.0000001, -32.3638, 0, 1.1168976)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Pilares/ColumnEast2" unique_id=1215822077]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_column")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Pilares/ColumnEast2" unique_id=767946904]
+shape = SubResource("Shape_column")
+
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Pilares/ColumnEast2" unique_id=1556071632]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.6, 0)
 visible = false
 height = 4.0
@@ -455,39 +807,19 @@ vertices = PackedVector3Array(-0.7, 0, -0.7, 0.7, 0, -0.7, 0.7, 0, 0.7, -0.7, 0,
 affect_navigation_mesh = true
 avoidance_enabled = false
 
-[node name="BlockEast" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=186508352]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0.7, -2)
+[node name="ColumnEast3" type="StaticBody3D" parent="NavigationRegion3D/Props/Pilares" unique_id=614938258]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.0000001, -32.3638, 0, 29.420845)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/BlockEast" unique_id=207305144]
-material_override = ExtResource("7_maskprops")
-mesh = SubResource("Mesh_block")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/BlockEast" unique_id=1748339758]
-shape = SubResource("Shape_block")
-
-[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/BlockEast" unique_id=1506891101]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
-visible = false
-height = 3.0
-vertices = PackedVector3Array(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1)
-affect_navigation_mesh = true
-avoidance_enabled = false
-
-[node name="ColumnWestA" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=36896385]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, -2)
-collision_layer = 2
-collision_mask = 4
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/ColumnWestA" unique_id=804087056]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Pilares/ColumnEast3" unique_id=1974648238]
 material_override = ExtResource("7_maskprops")
 mesh = SubResource("Mesh_column")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/ColumnWestA" unique_id=1039581545]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Pilares/ColumnEast3" unique_id=1177667888]
 shape = SubResource("Shape_column")
 
-[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/ColumnWestA" unique_id=52606003]
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Pilares/ColumnEast3" unique_id=390910251]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.6, 0)
 visible = false
 height = 4.0
@@ -495,19 +827,19 @@ vertices = PackedVector3Array(-0.7, 0, -0.7, 0.7, 0, -0.7, 0.7, 0, 0.7, -0.7, 0,
 affect_navigation_mesh = true
 avoidance_enabled = false
 
-[node name="ColumnWestB" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=435543737]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 1.5, 2)
+[node name="ColumnEast4" type="StaticBody3D" parent="NavigationRegion3D/Props/Pilares" unique_id=707574440]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.0000001, 0, 0, 29.420845)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/ColumnWestB" unique_id=2107035619]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Pilares/ColumnEast4" unique_id=1346441412]
 material_override = ExtResource("7_maskprops")
 mesh = SubResource("Mesh_column")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/ColumnWestB" unique_id=2034030456]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Pilares/ColumnEast4" unique_id=954976462]
 shape = SubResource("Shape_column")
 
-[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/ColumnWestB" unique_id=622208508]
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Pilares/ColumnEast4" unique_id=45563952]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.6, 0)
 visible = false
 height = 4.0
@@ -515,19 +847,19 @@ vertices = PackedVector3Array(-0.7, 0, -0.7, 0.7, 0, -0.7, 0.7, 0, 0.7, -0.7, 0,
 affect_navigation_mesh = true
 avoidance_enabled = false
 
-[node name="Column" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=188027745]
+[node name="Coluna" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=188027745]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 1.5, 1)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Column" unique_id=607188009]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Coluna" unique_id=607188009]
 material_override = ExtResource("7_maskprops")
 mesh = SubResource("Mesh_column")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Column" unique_id=1639357481]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Coluna" unique_id=1639357481]
 shape = SubResource("Shape_column")
 
-[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Column" unique_id=568081154]
+[node name="ExcludeTop" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Coluna" unique_id=568081154]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.6, 0)
 visible = false
 height = 4.0
@@ -535,98 +867,73 @@ vertices = PackedVector3Array(-0.7, 0, -0.7, 0.7, 0, -0.7, 0.7, 0, 0.7, -0.7, 0,
 affect_navigation_mesh = true
 avoidance_enabled = false
 
-[node name="WallNorth" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=262914194]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.5, 1.5, 3.25)
-collision_layer = 2
-collision_mask = 4
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/WallNorth" unique_id=1516019544]
-material_override = ExtResource("7_maskprops")
-mesh = SubResource("Mesh_wall_h")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/WallNorth" unique_id=1054458593]
-shape = SubResource("Shape_wall_h")
-
-[node name="WallSouth" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1795041928]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.5, 1.5, 8.75)
-collision_layer = 2
-collision_mask = 4
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/WallSouth" unique_id=1014033847]
-material_override = ExtResource("7_maskprops")
-mesh = SubResource("Mesh_wall_h")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/WallSouth" unique_id=704432020]
-shape = SubResource("Shape_wall_h")
-
-[node name="WallWest" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=169605629]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.75, 1.5, 6)
-collision_layer = 2
-collision_mask = 4
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/WallWest" unique_id=2119222539]
-material_override = ExtResource("7_maskprops")
-mesh = SubResource("Mesh_wall_v")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/WallWest" unique_id=1798377585]
-shape = SubResource("Shape_wall_v")
-
-[node name="RoofCourt" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1558668248 groups=["full_occluder"]]
+[node name="Casa" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=1558668248 groups=["full_occluder"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.6, 3.1, 6)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/RoofCourt" unique_id=1898953607]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Casa" unique_id=1898953607]
 mesh = SubResource("Mesh_roof")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/RoofCourt" unique_id=714264314]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Casa" unique_id=714264314]
 shape = SubResource("Shape_roof")
 
-[node name="GateColA" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=871230189]
-transform = Transform3D(1, 0, 0, 0, 2.4050179, 0, 0, 0, 1, -1.9301176, 1.5, 8)
+[node name="WallNorth" type="StaticBody3D" parent="NavigationRegion3D/Props/Casa" unique_id=262914194]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.10000038, -1.5999999, -2.75)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/GateColA" unique_id=313355302]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Casa/WallNorth" unique_id=1516019544]
 material_override = ExtResource("7_maskprops")
-mesh = SubResource("Mesh_column")
+mesh = SubResource("Mesh_wall_h")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/GateColA" unique_id=1704860644]
-shape = SubResource("Shape_column")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Casa/WallNorth" unique_id=1054458593]
+shape = SubResource("Shape_wall_h")
 
-[node name="GateLintel" type="StaticBody3D" parent="NavigationRegion3D" unique_id=1055579219]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 44.6442, 0, 1.828809, 5.925518)
+[node name="WallSouth" type="StaticBody3D" parent="NavigationRegion3D/Props/Casa" unique_id=1795041928]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.10000038, -1.5999999, 2.75)
 collision_layer = 2
 collision_mask = 4
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/GateLintel" unique_id=577978183]
-transform = Transform3D(1, 0, 0, 0, 0.83679163, 0, 0, 0, 1, 0, 0, -0.048828125)
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Casa/WallSouth" unique_id=1014033847]
 material_override = ExtResource("7_maskprops")
-mesh = SubResource("Mesh_lintel")
+mesh = SubResource("Mesh_wall_h")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/GateLintel" unique_id=143338314]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.056152344)
-shape = SubResource("Shape_lintel")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Casa/WallSouth" unique_id=704432020]
+shape = SubResource("Shape_wall_h")
+
+[node name="WallWest" type="StaticBody3D" parent="NavigationRegion3D/Props/Casa" unique_id=169605629]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1499996, -1.5999999, 0)
+collision_layer = 2
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Casa/WallWest" unique_id=2119222539]
+material_override = ExtResource("7_maskprops")
+mesh = SubResource("Mesh_wall_v")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Casa/WallWest" unique_id=1798377585]
+shape = SubResource("Shape_wall_v")
 
 [node name="Enemies" type="Node3D" parent="." unique_id=1912144478]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.907509, 0, -2.0204048)
 
 [node name="GroundDummy" parent="Enemies" unique_id=1001 instance=ExtResource("5_enemy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 24.891163)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.371882, 1.6200464, 14.38255)
 
 [node name="GroundDummy2" parent="Enemies" unique_id=1002 instance=ExtResource("5_enemy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.817749, 0, 6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5355043, 3.465652, -21.377651)
 
 [node name="SouthDummy" parent="Enemies" unique_id=1006 instance=ExtResource("5_enemy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0, -3.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5490417, 0, 5.7412415)
 
 [node name="DeckDummy" parent="Enemies" unique_id=1007 instance=ExtResource("5_enemy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.317434, 3.5293899, -1.968956)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.3093653, 0.06244099, 9.816259)
 
 [node name="OcclusionFade" type="Node3D" parent="." unique_id=1794654324]
 script = ExtResource("6_fade")
 
 [node name="Player" type="CharacterBody3D" parent="." unique_id=636110244]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.8078055, 2.005314, -6.0307555)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.15088, 0.052536964, 10.333391)
 collision_layer = 4
 collision_mask = 3
 floor_snap_length = 0.35
@@ -650,7 +957,7 @@ visible = false
 mesh = SubResource("Mesh_player")
 
 [node name="Visual" parent="Player" unique_id=743709636 instance=ExtResource("15_playervisual")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014942408, 0.025588393, -0.0018811226)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.014942408, 0.025588274, -0.0018811226)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Player" unique_id=42872186]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
@@ -701,9 +1008,6 @@ anchors_preset = 0
 grow_horizontal = 2
 script = ExtResource("17_lootnotif")
 
-[node name="LootLabelManager" type="Node" parent="." unique_id=1927564518]
-script = ExtResource("18_lblmgr")
-
 [node name="UIManager" type="Node" parent="Interface" unique_id=1642097558]
 script = ExtResource("11_uimanager")
 
@@ -713,3 +1017,6 @@ layout_mode = 3
 [node name="InventoryMenu" parent="Interface/UIManager" unique_id=2012389591 instance=ExtResource("12_invmenu")]
 
 [node name="Tooltip" parent="Interface" unique_id=312138245 instance=ExtResource("13_tooltip")]
+
+[node name="LootLabelManager" type="Node" parent="." unique_id=1927564518]
+script = ExtResource("18_lblmgr")
