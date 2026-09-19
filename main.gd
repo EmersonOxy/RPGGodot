@@ -22,6 +22,7 @@ func _ready() -> void:
 		add_child(click_indicator)
 	death_label.visible = false
 	player.died.connect(_on_player_died)
+	player.get_node("Visual").death_animation_finished.connect(_on_death_animation_finished)
 
 
 func select_enemy(enemy: Node3D) -> void:
@@ -47,7 +48,17 @@ func _on_player_died() -> void:
 	click_pending = false
 	select_enemy(null)
 	click_indicator.hide()
+	inventory_menu.close()
+	$Interface/PlayerHUD.hide()
+	notification_label.hide()
+
+func _on_death_animation_finished() -> void:
+	player.death_sequence_finished = true
 	death_label.visible = true
+
+func _input(_event: InputEvent) -> void:
+	if player.is_dead and not player.death_sequence_finished:
+		get_viewport().set_input_as_handled()
 
 
 func show_notification(text: String, duration: float = 1.5) -> void:
@@ -76,7 +87,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			click_position = event.position
 			click_pending = true
 	elif event is InputEventKey:
-		if event.pressed and not event.echo and player.is_dead:
+		if event.pressed and not event.echo and player.is_dead and player.death_sequence_finished:
 			if event.keycode == KEY_R or event.keycode == KEY_SPACE or event.keycode == KEY_ENTER:
 				get_tree().reload_current_scene()
 

@@ -1,6 +1,7 @@
 extends CharacterBody3D
 
 const COMBAT_TEXT = preload("res://floating_combat_text.gd")
+const HIT_EFFECT = preload("res://hit_impact.gd")
 
 signal health_changed(current: int, maximum: int)
 signal xp_changed(current: int, maximum: int)
@@ -10,6 +11,19 @@ signal stats_changed
 signal attack_executed(target: Node3D, interval: float)
 signal manual_attack_requested(world_point: Vector3)
 signal took_hit
+signal stamina_changed(current: float, maximum: float)
+
+@export_group("Stamina")
+@export_range(1.0, 500.0) var max_stamina: float = 100.0
+@export_range(0.1, 100.0) var stamina_drain: float = 22.0
+@export_range(0.1, 100.0) var stamina_regen: float = 28.0
+@export_range(0.0, 5.0) var stamina_regen_delay: float = 1.0
+@export_range(0.05, 1.0) var stamina_restart_ratio: float = 0.2
+@export_group("")
+var stamina: float = 100.0
+var is_running := false
+var _stamina_delay := 0.0
+var _stamina_exhausted := false
 
 var weapon_drawn: bool:
 	get:
@@ -18,14 +32,16 @@ var weapon_drawn: bool:
 var unarmed_damage: int = 5
 const ATTACK_DAMAGE: int = 20
 const ATTACK_INTERVAL: float = 1.0
+const UNARMED_ATTACK_INTERVAL: float = 0.65
 const HIT_ATTACK_LOCK: float = 0.12
 const MANUAL_ATTACK_BUFFER: float = 0.25
-const MOVEMENT_SPEED_SCALE: float = 0.85
+const MOVEMENT_SPEED_SCALE: float = 0.68
 const ARMED_MOVEMENT_SCALE: float = 0.80
 
 @export var speed: float = 4.0
 @export var gravity: float = 20.0
 @export_range(0.8, 10.0) var attack_range: float = 1.5
+@export_range(0.0, 1.0) var hit_move_lock: float = 0.18
 @export var base_max_health: int = 100
 @export var base_attack_damage: int = ATTACK_DAMAGE
 @export var base_armor: int = 0
@@ -46,11 +62,14 @@ var action_bar: Node
 @onready var inventory: Node = $Inventory
 var health: int = 100
 var is_dead: bool = false
+var death_sequence_finished := false
 var approach_target: Node3D = null
 var attack_cooldown: float = 0.0
 var attack_hit_resolved: bool = false
 var _manual_attack_click: Variant = null
+var _manual_attack_held := false
 var hit_attack_lock_timer: float = 0.0
+var hit_move_lock_timer: float = 0.0
 var _buffered_attack_point: Variant = null
 var _manual_attack_buffer_timer: float = 0.0
 var hit_recovery_timer: float = 0.0
@@ -69,6 +88,7 @@ var move_direction: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
+	stamina = max_stamina
 	add_to_group("player")
 	equipment = preload("res://equipment.gd").new()
 	equipment.name = "Equipment"
@@ -92,9 +112,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		if is_dead or get_tree().paused or get_viewport().gui_is_dragging() or get_viewport().gui_get_hovered_control() != null:
 			return
 		_manual_attack_click = get_viewport().get_mouse_position()
+		_manual_attack_held = true
+		# Manual control replaces approach/auto-attack, so release really stops chaining.
+		stop_approach()
 		get_viewport().set_input_as_handled()
 	if not is_dead and event.is_action_pressed("toggle_weapon") and not event.is_echo():
 		$Visual.toggle_weapon()
+
+func _input(event: InputEvent) -> void:
+	# Releases must be seen even when the pointer has moved over UI.
+	if event.is_action_released("manual_attack"):
+		_manual_attack_held = false
+		_buffered_attack_point = null
+		_manual_attack_buffer_timer = 0.0
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_manual_attack_held = false
+		_manual_attack_click = null
+		_buffered_attack_point = null
+		_manual_attack_buffer_timer = 0.0
 
 func recalculate_stats() -> void:
 	equipment_bonuses = equipment.get_bonuses()
@@ -214,7 +251,7 @@ func _manual_move(manual_input: Vector2) -> void:
 	if direction.length() > 1.0:
 		direction = direction.normalized()
 		
-	var running = Input.is_action_pressed("run")
+	var running := _can_run()
 	var current_speed = manual_move_speed * get_movement_speed_multiplier() * (run_multiplier if running else 1.0)
 	
 	velocity.x = direction.x * current_speed
@@ -231,6 +268,29 @@ func _update_anim_state() -> void:
 		move_direction = Vector3(velocity.x, 0.0, velocity.z).normalized()
 	else:
 		move_direction = Vector3.ZERO
+
+
+func _can_run() -> bool:
+	return Input.is_action_pressed("run") and stamina > 0.0 and not _stamina_exhausted
+
+
+func _update_stamina(delta: float, moving_on_ground: bool) -> void:
+	var previous := stamina
+	is_running = moving_on_ground and _can_run()
+	if is_running:
+		stamina = maxf(0.0, stamina - stamina_drain * delta)
+		_stamina_delay = stamina_regen_delay
+		if stamina <= 0.0:
+			_stamina_exhausted = true
+			is_running = false
+	else:
+		var waiting := minf(_stamina_delay, delta)
+		_stamina_delay = maxf(0.0, _stamina_delay - delta)
+		stamina = minf(max_stamina, stamina + stamina_regen * (delta - waiting))
+		if stamina >= max_stamina * stamina_restart_ratio:
+			_stamina_exhausted = false
+	if not is_equal_approx(previous, stamina):
+		stamina_changed.emit(stamina, max_stamina)
 
 
 func is_in_attack_range() -> bool:
@@ -264,6 +324,7 @@ func _try_collect() -> void:
 func _physics_process(delta: float) -> void:
 	hit_recovery_timer = maxf(0.0, hit_recovery_timer - delta)
 	hit_attack_lock_timer = maxf(0.0, hit_attack_lock_timer - delta)
+	hit_move_lock_timer = maxf(0.0, hit_move_lock_timer - delta)
 	_manual_attack_buffer_timer = maxf(0.0, _manual_attack_buffer_timer - delta)
 	if _manual_attack_buffer_timer <= 0.0:
 		_buffered_attack_point = null
@@ -278,8 +339,17 @@ func _physics_process(delta: float) -> void:
 	if is_dead:
 		move_and_slide()
 		_update_anim_state()
+		is_running = false
+		_manual_attack_held = false
 		_manual_attack_click = null
 		_buffered_attack_point = null
+		return
+
+	# Damage flinch: a brief pause before movement inputs are accepted again.
+	if hit_move_lock_timer > 0.0:
+		move_and_slide()
+		_update_anim_state()
+		_update_stamina(delta, false)
 		return
 
 	if _manual_attack_click != null:
@@ -289,6 +359,22 @@ func _physics_process(delta: float) -> void:
 			request_manual_attack(point)
 	if _buffered_attack_point != null:
 		_try_start_manual_attack(_buffered_attack_point)
+	if _manual_attack_held:
+		if not Input.is_action_pressed("manual_attack") or get_viewport().gui_is_dragging() or get_viewport().gui_get_hovered_control() != null:
+			_manual_attack_held = false
+			_buffered_attack_point = null
+		elif attack_cooldown <= 0.0 and $Visual.can_start_manual_attack():
+			# Aim again at each new strike without redirecting the committed animation.
+			var held_point: Variant = _mouse_attack_point(get_viewport().get_mouse_position())
+			if held_point is Vector3:
+				_try_start_manual_attack(held_point)
+
+	# Keep gravity, but defer movement commands until the attack or hit clip finishes.
+	if $Visual.is_attack_movement_locked() or $Visual.is_hit_movement_locked():
+		move_and_slide()
+		_update_anim_state()
+		_update_stamina(delta, false)
+		return
 
 	var map_ready := NavigationServer3D.map_get_iteration_id(navigation_agent.get_navigation_map()) > 0
 	if approach_target != null:
@@ -311,7 +397,7 @@ func _physics_process(delta: float) -> void:
 			navigation_agent.target_position = global_position
 		move_mode = MoveMode.CLICK_MOVE
 		if map_ready and not is_in_attack_range() and not navigation_agent.is_navigation_finished():
-			var running = Input.is_action_pressed("run")
+			var running := _can_run()
 			var current_speed = speed * get_movement_speed_multiplier() * (run_multiplier if running else 1.0)
 			
 			var next_point := navigation_agent.get_next_path_position()
@@ -333,11 +419,13 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_update_anim_state()
+	var actual_velocity := get_real_velocity()
+	_update_stamina(delta, is_on_floor() and Vector2(actual_velocity.x, actual_velocity.z).length() > 0.1)
 
 	if _buffered_attack_point == null and is_in_attack_range() and approach_target.is_selected and attack_cooldown <= 0.0 and $Visual.can_start_manual_attack():
-		attack_cooldown = ATTACK_INTERVAL
+		attack_cooldown = ATTACK_INTERVAL if weapon_drawn else UNARMED_ATTACK_INTERVAL
 		attack_hit_resolved = false
-		attack_executed.emit(approach_target, ATTACK_INTERVAL)
+		attack_executed.emit(approach_target, attack_cooldown)
 
 	if collect_target != null:
 		_try_collect()
@@ -347,9 +435,11 @@ func take_damage(amount: int, damage_type: int = COMBAT_TEXT.DamageType.PLAYER_D
 	if is_dead or health <= 0 or amount <= 0 or hit_recovery_timer > 0.0:
 		return
 	hit_recovery_timer = 0.25
-	took_hit.emit()
+	hit_move_lock_timer = hit_move_lock
 	COMBAT_TEXT.show_damage_number(self, global_position + Vector3.UP * 1.6, mini(amount, health), damage_type, is_critical)
 	health = maxi(0, health - amount)
+	if health > 0:
+		took_hit.emit()
 	health_changed.emit(health, max_health)
 	if health == 0:
 		is_dead = true
@@ -373,15 +463,26 @@ func _on_attack_impact(target: Node3D = null, manual_direction: Vector3 = Vector
 	if not is_instance_valid(target):
 		return
 		
-	var dist = global_position.distance_to(target.global_position)
-	if dist > attack_range * 1.5:
+	var difference := target.global_position - global_position
+	if difference.length() > attack_range or absf(difference.y) > 0.35 or target.health <= 0:
+		return
+	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.9, target.global_position + Vector3.UP * 0.9, 3)
+	if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
 		return
 		
 	var final_damage = attack_damage if weapon_drawn else unarmed_damage
+	var armed := weapon_drawn
+	var hit_position := target.global_position + Vector3.UP * 1.0 - difference.normalized() * 0.3
 	var hp_before: int = target.health
 	target.take_damage(final_damage)
+	var damage_dealt: bool = not is_instance_valid(target) or target.health < hp_before
+	if damage_dealt:
+		HIT_EFFECT.spawn(get_tree().current_scene, hit_position, armed)
+		var camera := get_viewport().get_camera_3d()
+		if camera and camera.has_method("play_hit_impulse"):
+			camera.play_hit_impulse(difference, 1.0 if armed else 0.45)
 	
-	if is_instance_valid(target) and hp_before <= final_damage:
+	if is_instance_valid(target) and hp_before > 0 and target.health <= 0:
 		gain_xp(25)
 	elif not is_instance_valid(target):
 		gain_xp(25)
@@ -401,7 +502,7 @@ func _try_start_manual_attack(world_point: Vector3) -> bool:
 		return false
 	_buffered_attack_point = null
 	_manual_attack_buffer_timer = 0.0
-	attack_cooldown = ATTACK_INTERVAL
+	attack_cooldown = ATTACK_INTERVAL if weapon_drawn else UNARMED_ATTACK_INTERVAL
 	attack_hit_resolved = false
 	manual_attack_requested.emit(world_point)
 	return true

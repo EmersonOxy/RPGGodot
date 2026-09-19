@@ -1,15 +1,20 @@
 extends Node3D
+signal sword_swing(target: Node3D)
+signal attack_voice
+signal hit_animation_started
+signal death_animation_finished
+var _death_clip: StringName = &""
 ## One visual controller. Movement, damage values and recovery remain in Player.
 enum WeaponState { NO_WEAPON, SHEATHED, DRAWING, DRAWN, SHEATHING }
 
 @export var turn_speed := 12.0
 @export var blend_time := 0.15
-@export var unarmed_walk_playback := 2.50
-@export var unarmed_run_playback := 2.00
-@export var armed_walk_playback := 3.75
-@export var armed_run_playback := 1.44
-# Preserve the previously approved armed attack timing.
-@export var armed_attack_playback := 2.3921569
+@export var unarmed_walk_playback := 1.50
+@export var unarmed_run_playback := 1.70
+@export var armed_walk_playback := 2.25
+@export var armed_run_playback := 1.224
+@export_range(0.1, 4.0) var armed_attack_playback := 1.50
+@export_range(0.1, 4.0) var unarmed_attack_playback := 1.25
 
 @onready var body: CharacterBody3D = get_parent() as CharacterBody3D
 @onready var animation_player: AnimationPlayer = $Model/AnimationPlayer
@@ -43,6 +48,7 @@ func _ready() -> void:
 	animation_tree.callback_mode_method = AnimationMixer.ANIMATION_CALLBACK_MODE_METHOD_IMMEDIATE
 	animation_tree.process_physics_priority = 20
 	animation_tree.active = true
+	animation_tree.animation_finished.connect(_on_animation_finished)
 	animation_tree.set("parameters/Life/transition_request", "Alive")
 	sword_socket = find_child("SwordSocket", true, false)
 	back_socket = find_child("BackSwordSocket", true, false)
@@ -158,9 +164,12 @@ func update_movement(actual_velocity: Vector3, delta: float) -> void:
 		animation_tree.set("parameters/" + group + "/blend_position", _blend_speed)
 	var scales := [unarmed_walk_playback, unarmed_run_playback, armed_walk_playback, armed_run_playback]
 	var paths := ["Unarmed/1", "Unarmed/2", "Armed/1", "Armed/2"]
+	# Preserve gait tuning against the original movement scale; slowing travel
+	# must not compound the separately requested animation speed reduction.
+	var animation_speed: float = speed * 0.85 / body.MOVEMENT_SPEED_SCALE
 	for i in 4:
 		var reference := 4.0 if i % 2 == 0 else 6.0
-		var rate := clampf(scales[i] * clampf(speed / reference, 0.5, 1.5), 0.4, 4.0)
+		var rate := clampf(scales[i] * clampf(animation_speed / reference, 0.5, 1.5), 0.4, 4.0)
 		animation_tree.set("parameters/" + paths[i] + "/Speed/scale", rate)
 	if moving:
 		_cancel_long_idle()
@@ -173,7 +182,7 @@ func update_movement(actual_velocity: Vector3, delta: float) -> void:
 	else:
 		_idle_time = 0.0
 	var direction := planar
-	if _shots.has("Attack"):
+	if _shots.has("Attack") and _attack_pending:
 		if not _manual_attack_direction.is_zero_approx():
 			direction = _manual_attack_direction
 		elif _attack_target:
@@ -188,6 +197,19 @@ func update_movement(actual_velocity: Vector3, delta: float) -> void:
 func _reset_idle_timer() -> void:
 	_idle_time = 0.0
 	_idle_delay = _rng.randf_range(8.0, 12.0)
+
+func get_footstep_interval() -> float:
+	# Match the walk/run blend and TimeScale values already driving the legs.
+	var run_weight := clampf((_blend_speed - 4.0) / 2.0, 0.0, 1.0)
+	var frequencies: Array[float] = []
+	for group in ["Unarmed", "Armed"]:
+		var prefix := "Armed" if group == "Armed" else ""
+		var walk_rate: float = animation_tree.get("parameters/" + group + "/1/Speed/scale")
+		var run_rate: float = animation_tree.get("parameters/" + group + "/2/Speed/scale")
+		var walk_length := animation_player.get_animation(prefix + "Walk").length
+		var run_length := animation_player.get_animation(prefix + "Run").length
+		frequencies.append(lerpf(walk_rate / maxf(walk_length, 0.01), run_rate / maxf(run_length, 0.01), run_weight))
+	return 0.5 / maxf(lerpf(frequencies[0], frequencies[1], _armed_blend), 0.01)
 
 func _cancel_long_idle() -> void:
 	_cancel_shot("LongIdle")
@@ -204,13 +226,25 @@ func _on_attack_executed(target: Node3D, _interval: float) -> void:
 		_manual_attack_direction = Vector3.ZERO
 	_attack_pending = true
 	var armed := is_weapon_in_hand()
-	animation_tree.set("parameters/AttackSpeed/scale", armed_attack_playback if armed else 1.0)
+	animation_tree.set("parameters/AttackSpeed/scale", armed_attack_playback if armed else unarmed_attack_playback)
 	_start_shot("Attack", "ArmedAttack" if armed else "Attack" + str(_rng.randi_range(1, 3)))
 
 func _on_attack_impact() -> void:
 	if _dead or not _attack_pending or not _shots.has("Attack"):
 		return
 	_attack_pending = false
+	if is_weapon_in_hand():
+		var sound_target: Node3D = null
+		if not _manual_attack_direction.is_zero_approx():
+			sound_target = body._find_manual_attack_target(_manual_attack_direction)
+		elif _attack_target:
+			sound_target = _attack_target.get_ref() as Node3D
+			if is_instance_valid(sound_target):
+				var direction := (sound_target.global_position - body.global_position).normalized()
+				if not body._can_hit_manually(sound_target, direction):
+					sound_target = null
+		sword_swing.emit(sound_target)
+	attack_voice.emit()
 	if not _manual_attack_direction.is_zero_approx():
 		body._on_attack_impact(null, _manual_attack_direction)
 		return
@@ -220,6 +254,12 @@ func _on_attack_impact() -> void:
 
 func can_start_manual_attack() -> bool:
 	return not _dead and body.hit_attack_lock_timer <= 0.0 and not _shots.has("Weapon") and not _shots.has("Attack")
+
+func is_attack_movement_locked() -> bool:
+	return not _dead and _shots.has("Attack")
+
+func is_hit_movement_locked() -> bool:
+	return not _dead and _shots.has("Hit")
 
 func _on_manual_attack_requested(world_point: Vector3) -> void:
 	var direction := world_point - body.global_position
@@ -241,6 +281,7 @@ func _on_took_hit() -> void:
 	body.hit_attack_lock_timer = body.HIT_ATTACK_LOCK
 	var clip := "ArmedHit" + str(_rng.randi_range(1, 2)) if is_weapon_in_hand() else "Hit" + str(_rng.randi_range(1, 4))
 	_start_shot("Hit", clip)
+	hit_animation_started.emit()
 
 func _on_died() -> void:
 	if _dead:
@@ -251,5 +292,11 @@ func _on_died() -> void:
 	for action in _shots.keys():
 		animation_tree.set("parameters/" + action + "/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
 	_shots.clear()
-	(_graph.get_node("DeathClip") as AnimationNodeAnimation).animation = "ArmedDeath" + str(_rng.randi_range(1, 2)) if armed else "Death"
+	_death_clip = "ArmedDeath" + str(_rng.randi_range(1, 2)) if armed else "Death"
+	(_graph.get_node("DeathClip") as AnimationNodeAnimation).animation = _death_clip
 	animation_tree.set("parameters/Life/transition_request", "Death")
+
+func _on_animation_finished(animation: StringName) -> void:
+	if _dead and animation == _death_clip:
+		_death_clip = &""
+		death_animation_finished.emit()

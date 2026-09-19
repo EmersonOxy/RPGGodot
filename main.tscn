@@ -16,6 +16,7 @@
 [ext_resource type="PackedScene" path="res://tooltip.tscn" id="13_tooltip"]
 [ext_resource type="PackedScene" uid="uid://bdqwamcquu25t" path="res://player_hud.tscn" id="14_playerhud"]
 [ext_resource type="PackedScene" uid="uid://gwlq8hoyo05y" path="res://player_visual.tscn" id="15_playervisual"]
+[ext_resource type="Script" path="res://player_audio.gd" id="16_audio"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -637,6 +638,9 @@ radius = 0.35
 
 [node name="Inventory" type="Node" parent="Player" unique_id=1840198795]
 script = ExtResource("2b_inventory")
+
+[node name="Audio" type="Node" parent="Player"]
+script = ExtResource("16_audio")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Player" unique_id=763971118]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

@@ -16,6 +16,17 @@ var _offset := Vector3(12.0, 12.8, 12.0)
 var _zoom_index: int = DEFAULT_ZOOM_INDEX
 var _target_size: float = ZOOM_LEVELS[DEFAULT_ZOOM_INDEX]
 var _scroll_enabled := true
+var _hit_time := 0.0
+var _hit_offset := Vector2.ZERO
+const HIT_DURATION := 0.12
+
+
+func play_hit_impulse(direction: Vector3, strength: float = 1.0) -> void:
+	var screen_direction := Vector2(direction.dot(global_basis.x), direction.dot(global_basis.y))
+	if screen_direction.length_squared() < 0.001:
+		screen_direction = Vector2(0.5, 1.0)
+	_hit_offset = screen_direction.normalized() * size * 0.010 * clampf(strength, 0.0, 1.0)
+	_hit_time = HIT_DURATION
 
 
 func _ready() -> void:
@@ -37,6 +48,10 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_hit_time = maxf(0.0, _hit_time - delta)
+	var hit_weight := pow(_hit_time / HIT_DURATION, 2.0)
+	h_offset = _hit_offset.x * hit_weight
+	v_offset = _hit_offset.y * hit_weight
 	if not is_instance_valid(_target):
 		_target = get_tree().get_first_node_in_group("player") as Node3D
 		if not is_instance_valid(_target):
@@ -120,4 +135,3 @@ func _is_mouse_over_scroll_consumer() -> bool:
 			return true
 		curr = curr.get_parent()
 	return true
-

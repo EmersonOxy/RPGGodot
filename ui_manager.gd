@@ -35,6 +35,9 @@ func is_open(menu_name: String) -> bool:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	var player := get_tree().get_first_node_in_group("player")
+	if player and player.is_dead and not player.death_sequence_finished:
+		return
 	if event is InputEventKey and event.echo:
 		return
 	if event.is_action_pressed("toggle_pause"):
@@ -50,6 +53,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _toggle_inventory() -> void:
+	var player := get_tree().get_first_node_in_group("player")
+	if player and player.is_dead:
+		return
 	if get_tree().paused:
 		return
 	var inv = _menus[MENU_INVENTORY]

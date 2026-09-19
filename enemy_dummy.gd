@@ -11,12 +11,16 @@ enum State { IDLE, CHASE, ATTACK, RETURN }
 @export var attack_damage: int = 10
 @export_range(0.1, 10.0) var attack_interval: float = 1.5
 @export_range(0.0, 2.0) var enemy_attack_recovery: float = 0.55
+@export_range(0.05, 2.0) var attack_windup: float = 0.4
 @export var aggro_range: float = 8.0
 @export var leash_range: float = 15.0
 @export var move_speed: float = 2.5
 @export var gravity: float = 20.0
 @export var drop_table: Resource
 @export var enemy_name: String = "Dummy"
+@export var damage_sound: AudioStream = preload("res://assets/sound/basics/hit/inimigo_padrao_tomando_dano.mp3")
+@export_range(-40.0, 6.0) var damage_sound_volume_db := -8.0
+var _damage_voice: AudioStreamPlayer3D
 var health: int = 100
 var is_selected := false
 var attack_cooldown: float = 0.0
@@ -25,6 +29,12 @@ var hit_recovery_timer: float = 0.0
 var target: Node3D = null
 var state: State = State.IDLE
 var home_position: Vector3
+var _windup_remaining := 0.0
+var _attack_pending := false
+var _hit_flash_remaining := 0.0
+var _visual_material: StandardMaterial3D
+var _base_color: Color
+var _strike_tween: Tween
 
 @onready var selection_indicator: MeshInstance3D = $SelectionIndicator
 @onready var navigation_agent: NavigationAgent3D = $NavigationAgent3D
@@ -32,6 +42,9 @@ var home_position: Vector3
 
 
 func _ready() -> void:
+	_visual_material = $MeshInstance3D.get_active_material(0).duplicate() as StandardMaterial3D
+	$MeshInstance3D.material_override = _visual_material
+	_base_color = _visual_material.albedo_color
 	health = max_health
 	attack_cooldown = 0.0
 	home_position = global_position
@@ -69,6 +82,8 @@ func take_damage(amount: int, damage_type: int = COMBAT_TEXT.DamageType.NORMAL, 
 	if health <= 0 or amount <= 0 or hit_recovery_timer > 0.0:
 		return
 	hit_recovery_timer = 0.25
+	_hit_flash_remaining = 0.12
+	_play_damage_sound()
 	COMBAT_TEXT.show_damage_number(self, global_position + Vector3.UP * 1.6, mini(amount, health), damage_type, is_critical)
 	health = maxi(0, health - amount)
 	if _health_bar_3d:
@@ -82,6 +97,24 @@ func take_damage(amount: int, damage_type: int = COMBAT_TEXT.DamageType.NORMAL, 
 		died.emit(self)
 		queue_free()
 
+
+func _play_damage_sound() -> void:
+	if damage_sound == null:
+		return
+	if is_instance_valid(_damage_voice):
+		_damage_voice.queue_free()
+	_damage_voice = AudioStreamPlayer3D.new()
+	_damage_voice.stream = damage_sound.duplicate()
+	if _damage_voice.stream is AudioStreamMP3:
+		(_damage_voice.stream as AudioStreamMP3).loop = false
+	_damage_voice.bus = "Effects"
+	_damage_voice.volume_db = damage_sound_volume_db
+	_damage_voice.unit_size = 15.0
+	# The fatal hit remains audible after this enemy is freed.
+	get_parent().add_child(_damage_voice)
+	_damage_voice.global_position = global_position + Vector3.UP
+	_damage_voice.finished.connect(_damage_voice.queue_free)
+	_damage_voice.play()
 
 func _drop_loot() -> void:
 	if drop_table == null:
@@ -116,6 +149,8 @@ func _find_surface_position(pos: Vector3) -> Vector3:
 
 func _physics_process(delta: float) -> void:
 	hit_recovery_timer = maxf(0.0, hit_recovery_timer - delta)
+	_hit_flash_remaining = maxf(0.0, _hit_flash_remaining - delta)
+	_visual_material.albedo_color = Color.WHITE if _hit_flash_remaining > 0.0 else (Color(1.0, 0.65, 0.12) if _attack_pending else _base_color)
 	# Recovery is additional to the existing cooldown, including fractional frames.
 	var recovery_elapsed := minf(attack_recovery_timer, delta)
 	attack_recovery_timer = maxf(0.0, attack_recovery_timer - delta)
@@ -127,6 +162,21 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y = 0.0
 	if health <= 0:
+		return
+	# A committed attack owns movement through preparation and recovery.
+	if _attack_pending:
+		_windup_remaining = maxf(0.0, _windup_remaining - delta)
+		if _windup_remaining <= 0.0:
+			_attack_pending = false
+			attack_recovery_timer = enemy_attack_recovery
+			attack_cooldown = attack_interval
+			if is_instance_valid(target) and not target.is_dead and _is_target_in_range():
+				target.take_damage(attack_damage)
+			_play_attack_visual(false)
+		move_and_slide()
+		return
+	if attack_recovery_timer > 0.0:
+		move_and_slide()
 		return
 	if not is_instance_valid(target):
 		target = get_tree().get_first_node_in_group("player") as Node3D
@@ -195,9 +245,20 @@ func _attack() -> void:
 		return
 	if not target.has_method("take_damage"):
 		return
-	attack_cooldown = attack_interval
-	target.take_damage(attack_damage)
-	attack_recovery_timer = enemy_attack_recovery
+	_attack_pending = true
+	_windup_remaining = attack_windup
+	_play_attack_visual(true)
+
+
+func _play_attack_visual(preparing: bool) -> void:
+	if _strike_tween:
+		_strike_tween.kill()
+	_strike_tween = create_tween().set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	if preparing:
+		_strike_tween.tween_property($MeshInstance3D, "scale", Vector3(1.1, 0.9, 1.1), attack_windup)
+	else:
+		_strike_tween.tween_property($MeshInstance3D, "scale", Vector3(0.94, 1.06, 0.94), 0.08)
+		_strike_tween.tween_property($MeshInstance3D, "scale", Vector3.ONE, maxf(0.05, enemy_attack_recovery - 0.08))
 
 
 func _return_home(delta: float) -> void:

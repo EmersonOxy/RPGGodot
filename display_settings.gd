@@ -3,10 +3,12 @@ extends Node
 
 signal settings_applied
 signal interface_settings_applied
+signal audio_settings_applied
 
 const CONFIG_PATH := "user://settings.cfg"
 const SECTION_VIDEO := "video"
 const SECTION_INTERFACE := "interface"
+const AUDIO_DEFAULTS := {"master_volume": 1.0, "effects_volume": 1.0, "sword_volume": 1.0, "steps_volume": 1.0, "audio_muted": false}
 const CURSORS = preload("res://cursor_catalog.gd")
 
 const DISPLAY_MODES: Array[String] = ["Janela", "Janela sem bordas", "Tela cheia"]
@@ -42,6 +44,11 @@ var default_zoom_index: int = DEFAULT_ZOOM_INDEX
 var zoom_with_scroll := true
 var cursor_style := "default"
 var show_controls := true
+var master_volume := 1.0
+var effects_volume := 1.0
+var sword_volume := 1.0
+var steps_volume := 1.0
+var audio_muted := false
 var _last_applied_zoom := DEFAULT_ZOOM_INDEX
 
 
@@ -55,7 +62,8 @@ func get_defaults() -> Dictionary:
 	return {"display_mode": DEFAULT_DISPLAY_MODE, "resolution": DEFAULT_RESOLUTION,
 		"vsync": DEFAULT_VSYNC, "fps_limit": DEFAULT_FPS_LIMIT, "render_scale": DEFAULT_RENDER_SCALE,
 		"quality": DEFAULT_QUALITY, "default_zoom_index": DEFAULT_ZOOM_INDEX, "zoom_with_scroll": true,
-		"cursor_style": "default", "show_controls": true}
+		"cursor_style": "default", "show_controls": true,
+		"master_volume": 1.0, "effects_volume": 1.0, "sword_volume": 1.0, "steps_volume": 1.0, "audio_muted": false}
 
 func get_settings() -> Dictionary:
 	var values := {}
@@ -75,7 +83,15 @@ func sanitize(values: Dictionary) -> Dictionary:
 		if not valid[pair[0]] in pair[1]:
 			valid[pair[0]] = get_defaults()[pair[0]]
 	valid.cursor_style = CURSORS.STYLES[CURSORS.index_for(valid.cursor_style)].id
+	for key in AUDIO_DEFAULTS:
+		if key != "audio_muted":
+			valid[key] = clampf(valid[key], 0.0, 1.0) if is_finite(valid[key]) else 1.0
 	return valid
+
+func _section_for(key: String) -> String:
+	if AUDIO_DEFAULTS.has(key):
+		return "audio"
+	return SECTION_INTERFACE if key in ["cursor_style", "show_controls"] else SECTION_VIDEO
 
 func read_settings(path: String = CONFIG_PATH) -> Dictionary:
 	var cfg := ConfigFile.new()
@@ -83,7 +99,7 @@ func read_settings(path: String = CONFIG_PATH) -> Dictionary:
 		return get_defaults()
 	var values := get_defaults()
 	for key in values:
-		var section := SECTION_INTERFACE if key in ["cursor_style", "show_controls"] else SECTION_VIDEO
+		var section := _section_for(key)
 		values[key] = cfg.get_value(section, key, values[key])
 	var width = cfg.get_value(SECTION_VIDEO, "resolution_width", DEFAULT_RESOLUTION.x)
 	var height = cfg.get_value(SECTION_VIDEO, "resolution_height", DEFAULT_RESOLUTION.y)
@@ -113,7 +129,7 @@ func _save_values(values: Dictionary, path: String) -> Error:
 	var valid := sanitize(values)
 	for key in valid:
 		if key != "resolution":
-			var section := SECTION_INTERFACE if key in ["cursor_style", "show_controls"] else SECTION_VIDEO
+			var section := _section_for(key)
 			cfg.set_value(section, key, valid[key])
 	cfg.set_value(SECTION_VIDEO, "zoom_levels_version", 2)
 	cfg.set_value(SECTION_VIDEO, "resolution_width", valid.resolution.x)
@@ -167,11 +183,14 @@ func restore_defaults() -> void:
 	zoom_with_scroll = true
 	cursor_style = "default"
 	show_controls = true
+	for key in AUDIO_DEFAULTS:
+		set(key, AUDIO_DEFAULTS[key])
 	save_settings()
 	apply_all_settings()
 
 
 func apply_all_settings() -> void:
+	_apply_audio_settings()
 	var window := get_window()
 	if window:
 		match display_mode:
@@ -216,6 +235,28 @@ func apply_all_settings() -> void:
 	settings_applied.emit()
 	_apply_interface_settings()
 
+
+func apply_audio_settings(values: Dictionary) -> Error:
+	var draft := get_settings()
+	for key in AUDIO_DEFAULTS:
+		if values.has(key):
+			draft[key] = values[key]
+	_set_values(draft)
+	_apply_audio_settings()
+	return save_settings()
+
+func _apply_audio_settings() -> void:
+	for bus_name in ["Effects", "Swords", "Footsteps"]:
+		if AudioServer.get_bus_index(bus_name) < 0:
+			AudioServer.add_bus()
+			AudioServer.set_bus_name(AudioServer.bus_count - 1, bus_name)
+		AudioServer.set_bus_send(AudioServer.get_bus_index(bus_name), "Master" if bus_name == "Effects" else "Effects")
+	for pair in [["Master", master_volume], ["Effects", effects_volume], ["Swords", sword_volume], ["Footsteps", steps_volume]]:
+		var index := AudioServer.get_bus_index(pair[0])
+		var volume: float = pair[1]
+		AudioServer.set_bus_volume_db(index, linear_to_db(maxf(volume, 0.0001)))
+		AudioServer.set_bus_mute(index, volume <= 0.0 or (pair[0] == "Master" and audio_muted))
+	audio_settings_applied.emit()
 
 func _apply_quality(q_level: int) -> void:
 	var vp := get_viewport()

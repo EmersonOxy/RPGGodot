@@ -11,11 +11,15 @@ signal action_slot_selected(slot_index: int, slot_data: Variant)
 @onready var _action_bar: HBoxContainer = $ActionBar
 
 var _actions: Node
+var _stamina_bar: ProgressBar
+var _stamina_fade: Tween
 var _feedback_tweens: Dictionary = {}
 
 var _hp_tween: Tween
 var _xp_tween: Tween
 var _hp_ghost_tween: Tween
+var _damage_vignette: TextureRect
+var _vignette_tween: Tween
 
 var _current_hp: int = 100
 var _max_hp: int = 100
@@ -35,11 +39,15 @@ var _style_slot_selected_hover: StyleBoxFlat
 
 func _ready() -> void:
 	add_to_group("player_hud")
+	_setup_damage_vignette()
 	var player := get_tree().get_first_node_in_group("player")
 	if player:
+		_setup_stamina(player)
 		_actions = player.action_bar
 		if player.has_signal("health_changed"):
 			player.health_changed.connect(_on_hp_changed)
+		if player.has_signal("took_hit"):
+			player.took_hit.connect(_on_player_hit)
 		if player.has_signal("xp_changed"):
 			player.xp_changed.connect(_on_xp_changed)
 		if player.has_signal("level_up"):
@@ -59,6 +67,75 @@ func _ready() -> void:
 		_actions.updated.connect(_refresh_actions)
 		_actions.used.connect(_on_action_used)
 		_refresh_actions()
+
+
+func _setup_stamina(player: Node) -> void:
+	_stamina_bar = ProgressBar.new()
+	_stamina_bar.name = "StaminaBar"
+	_stamina_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stamina_bar.show_percentage = false
+	_stamina_bar.step = 0.0
+	add_child(_stamina_bar)
+	_stamina_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	_stamina_bar.offset_left = -150.0
+	_stamina_bar.offset_right = 150.0
+	_stamina_bar.offset_top = -179.0
+	_stamina_bar.offset_bottom = -169.0
+	var background := StyleBoxFlat.new()
+	background.bg_color = Color(0.06, 0.08, 0.06, 0.85)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.45, 0.8, 0.25)
+	_stamina_bar.add_theme_stylebox_override("background", background)
+	_stamina_bar.add_theme_stylebox_override("fill", fill)
+	_stamina_bar.max_value = player.max_stamina
+	_stamina_bar.value = player.stamina
+	_stamina_bar.modulate.a = 0.0 if player.stamina >= player.max_stamina else 1.0
+	player.stamina_changed.connect(_on_stamina_changed)
+
+
+func _setup_damage_vignette() -> void:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.72, 1.0])
+	gradient.colors = PackedColorArray([Color(0.8, 0.0, 0.0, 0.0), Color(0.7, 0.0, 0.0, 0.12), Color(0.7, 0.0, 0.0, 0.85)])
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(0.5, 0.0)
+	texture.width = 128
+	texture.height = 128
+	_damage_vignette = TextureRect.new()
+	_damage_vignette.name = "DamageVignette"
+	_damage_vignette.texture = texture
+	_damage_vignette.stretch_mode = TextureRect.STRETCH_SCALE
+	_damage_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_damage_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_damage_vignette.modulate.a = 0.0
+	add_child(_damage_vignette)
+
+func _on_player_hit() -> void:
+	if _damage_vignette == null:
+		return
+	if _vignette_tween:
+		_vignette_tween.kill()
+	_damage_vignette.modulate.a = 0.9
+	_vignette_tween = create_tween()
+	_vignette_tween.tween_property(_damage_vignette, "modulate:a", 0.0, 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _on_stamina_changed(current: float, maximum: float) -> void:
+	var was_full := _stamina_bar.value >= _stamina_bar.max_value
+	var is_full := current >= maximum
+	_stamina_bar.max_value = maximum
+	_stamina_bar.value = current
+	if was_full == is_full:
+		return
+	if _stamina_fade:
+		_stamina_fade.kill()
+	_stamina_fade = create_tween()
+	if is_full:
+		_stamina_fade.tween_interval(0.6)
+	_stamina_fade.tween_property(_stamina_bar, "modulate:a", 0.0 if is_full else 1.0, 0.2)
 
 
 func _setup_action_bar() -> void:

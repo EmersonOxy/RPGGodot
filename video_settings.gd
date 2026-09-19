@@ -21,17 +21,78 @@ signal applied
 
 var _ds: Node = null
 var _resolutions: Array[Vector2i] = []
+var _audio_sliders: Dictionary = {}
+var _audio_labels: Dictionary = {}
+var _audio_mute: CheckButton
+var _audio_hint: Label
 
 
 func _ready() -> void:
 	_ds = get_node_or_null("/root/DisplaySettings")
 	_populate_options()
+	_setup_audio_options()
 	btn_apply.pressed.connect(_on_apply_pressed)
 	btn_cancel.pressed.connect(_on_cancel_pressed)
 	btn_defaults.pressed.connect(_on_defaults_pressed)
 	opt_display_mode.item_selected.connect(func(_index): _update_mode_hint())
 	load_from_settings()
 
+
+func _setup_audio_options() -> void:
+	var grid := $Scroll/Grid
+	var heading := Label.new()
+	heading.text = "ÁUDIO"
+	grid.add_child(heading)
+	var reset := Button.new()
+	reset.text = "Restaurar áudio"
+	reset.pressed.connect(func(): _save_audio(_ds.AUDIO_DEFAULTS))
+	grid.add_child(reset)
+	for entry in [["master_volume", "Volume geral"], ["effects_volume", "Efeitos sonoros"], ["sword_volume", "Espada"], ["steps_volume", "Passos"]]:
+		var key: String = entry[0]
+		var label := Label.new()
+		label.text = entry[1]
+		grid.add_child(label)
+		var row := HBoxContainer.new()
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(row)
+		var slider := HSlider.new()
+		slider.name = key
+		slider.min_value = 0.0
+		slider.max_value = 100.0
+		slider.step = 1.0
+		slider.custom_minimum_size = Vector2(150, 32)
+		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(slider)
+		var percentage := Label.new()
+		percentage.custom_minimum_size.x = 52.0
+		row.add_child(percentage)
+		_audio_sliders[key] = slider
+		_audio_labels[key] = percentage
+		slider.value_changed.connect(func(value: float): _save_audio({key: value / 100.0}))
+	var mute_label := Label.new()
+	mute_label.text = "Silenciar tudo"
+	grid.add_child(mute_label)
+	_audio_mute = CheckButton.new()
+	grid.add_child(_audio_mute)
+	_audio_mute.toggled.connect(func(enabled: bool): _save_audio({"audio_muted": enabled}))
+	_audio_hint = Label.new()
+	_audio_hint.text = "Áudio: salvo na hora."
+	_audio_hint.add_theme_font_size_override("font_size", 14)
+	grid.add_child(_audio_hint)
+	grid.add_child(Control.new())
+	_ds.audio_settings_applied.connect(_sync_audio)
+	_sync_audio()
+
+func _sync_audio() -> void:
+	for key in _audio_sliders:
+		var percent := roundi(float(_ds.get(key)) * 100.0)
+		_audio_sliders[key].set_value_no_signal(percent)
+		_audio_labels[key].text = "%d%%" % percent
+	_audio_mute.set_pressed_no_signal(_ds.audio_muted)
+
+func _save_audio(values: Dictionary) -> void:
+	var error: Error = _ds.apply_audio_settings(values)
+	_audio_hint.text = "Áudio: salvo na hora." if error == OK else "Falha ao salvar áudio (%d)." % error
 
 func _populate_options() -> void:
 	# Modo de exibição
@@ -163,5 +224,4 @@ func _on_defaults_pressed() -> void:
 	opt_scroll_zoom.selected = 0
 	_update_mode_hint()
 	status.text = "Padrões selecionados. Clique em Aplicar para salvar."
-
 
