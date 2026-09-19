@@ -4,6 +4,38 @@ extends Control
 ## (abaixo, menor). Ao vencer o tempo, a principal encolhe e sobe para passada,
 ## a futura cresce e sobe para principal, e a passada antiga some com fade.
 
+
+class PartialOutline extends Control:
+	## Trecho da borda externa do painel: acompanha as extremidades externas do
+	## card (lateral, topo e base, com cantos arredondados à esquerda) e fecha
+	## com uma linha vertical antes do início do texto. A referência de fim é o
+	## retângulo real do ícone, não um valor fixo.
+	var card: Control
+	var icon: Control
+	var border_color := Color.WHITE
+	var corner_radius := 10.0
+	var line_width := 1.0
+	var close_offset := 24.0
+
+	func _draw() -> void:
+		var w := line_width
+		var hw := w * 0.5
+		var r := minf(corner_radius, minf(size.x, size.y) * 0.5)
+		var end_x := r + 1.0
+		if is_instance_valid(icon) and is_instance_valid(card):
+			var origin := get_global_rect().position
+			end_x = icon.get_global_rect().end.x - origin.x + close_offset
+		end_x = clampf(end_x, r + 1.0, size.x)
+		# Lateral esquerda externa, altura total do painel.
+		draw_line(Vector2(hw, r), Vector2(hw, size.y - r), border_color, w)
+		# Canto superior esquerdo e topo externo.
+		draw_arc(Vector2(r, r), r - hw, PI, PI * 1.5, 16, border_color, w, true)
+		draw_line(Vector2(r, hw), Vector2(end_x, hw), border_color, w)
+		# Canto inferior esquerdo e base externa.
+		draw_arc(Vector2(r, size.y - r), r - hw, PI * 0.5, PI, 16, border_color, w, true)
+		draw_line(Vector2(r, size.y - hw), Vector2(end_x, size.y - hw), border_color, w)
+
+
 const RARITY_COLORS := {
 	0: Color(0.88, 0.88, 0.85),
 	1: Color(0.25, 0.90, 0.30),
@@ -145,6 +177,18 @@ func _build_card_content(card: PanelContainer) -> void:
 	card.set_meta("name_label", name_label)
 	card.set_meta("qty_label", qty_label)
 
+	var overlay := Control.new()
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	card.add_child(overlay)
+	var outline := PartialOutline.new()
+	outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	outline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	outline.card = card
+	outline.icon = icon
+	overlay.add_child(outline)
+	card.set_meta("outline", outline)
+
 
 func _update_card(card: PanelContainer, item: ItemData, qty: int) -> void:
 	var icon: TextureRect = card.get_meta("icon")
@@ -159,6 +203,11 @@ func _update_card(card: PanelContainer, item: ItemData, qty: int) -> void:
 	name_label.add_theme_color_override("font_color", RARITY_COLORS.get(item.rarity, RARITY_COLORS[0]))
 	var qty_label: Label = card.get_meta("qty_label")
 	qty_label.text = "×%d" % qty if qty > 1 else ""
+	var outline: PartialOutline = card.get_meta("outline")
+	var rarity_color: Color = RARITY_COLORS.get(item.rarity, RARITY_COLORS[0])
+	rarity_color.a = 0.8
+	outline.border_color = rarity_color
+	outline.queue_redraw()
 
 
 func _animate_card(card: PanelContainer, target_y: float, target_scale: float, target_alpha: float, duration: float) -> void:

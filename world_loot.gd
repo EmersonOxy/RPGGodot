@@ -14,6 +14,8 @@ var item: ItemData = null:
 		if is_inside_tree():
 			_setup_visuals()
 
+@export var pickup_sound: AudioStream = preload("res://assets/sound/ui/pegar_item.mp3")
+@export_range(-40.0, 6.0) var pickup_volume_db := 0.0
 @export var quantity: int = 1
 @export var label_distance := 14.0
 @export var hover_scale := 1.04
@@ -313,6 +315,23 @@ func _exit_tree() -> void:
 	_stop_pulse()
 
 
+func _play_pickup_sound() -> void:
+	if pickup_sound == null:
+		return
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		scene_root = get_parent()
+	var player := AudioStreamPlayer.new()
+	player.stream = pickup_sound.duplicate()
+	if player.stream is AudioStreamMP3:
+		(player.stream as AudioStreamMP3).loop = false
+	player.bus = "Effects"
+	player.volume_db = pickup_volume_db
+	scene_root.add_child(player)
+	player.finished.connect(player.queue_free)
+	player.play()
+
+
 func try_pickup(inventory) -> bool:
 	if _collected or inventory == null or item == null:
 		return false
@@ -321,6 +340,7 @@ func try_pickup(inventory) -> bool:
 	Acquisitions.register_acquisition(item, quantity)
 	if inventory.add_item(item, quantity):
 		_collected = true
+		_play_pickup_sound()
 		if _is_hovered:
 			Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 		_stop_pulse()
