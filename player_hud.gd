@@ -27,6 +27,7 @@ var _max_hp: int = 100
 # Action Bar state
 var _action_slots: Array[PanelContainer] = []
 var _action_labels: Array[Label] = []
+var _action_icons: Array[TextureRect] = []
 var _action_data: Array = [null, null, null, null, null]
 var _selected_action_slot: int = -1
 var _hovered_action_slot: int = -1
@@ -174,6 +175,15 @@ func _setup_action_bar() -> void:
 			if lbl:
 				lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+			var icon := TextureRect.new()
+			icon.name = "ItemIcon"
+			icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icon.visible = false
+			slot.add_child(icon)
+			_action_icons.append(icon)
+
 			_update_slot_style(idx)
 
 
@@ -293,9 +303,34 @@ func _refresh_actions() -> void:
 func _update_slot_display(slot_idx: int) -> void:
 	var item: ItemData = _actions.get_item(slot_idx)
 	var label := _action_labels[slot_idx]
+	var icon: TextureRect = _action_icons[slot_idx] if slot_idx < _action_icons.size() else null
 	label.add_theme_font_size_override("font_size", 13 if item else 17)
-	label.text = "%d\n%s\nx%d" % [slot_idx + 1, item.display_name.left(6), _actions.inventory.count_item(item)] if item else str(slot_idx + 1)
+	if item != null and item.icon != null:
+		# Com ícone, o slot mostra apenas número e quantidade (sem o nome).
+		label.text = "%d\nx%d" % [slot_idx + 1, _actions.inventory.count_item(item)]
+		# Ícone compartilhado com o inventário: ocupa a metade superior do slot.
+		icon.texture = item.icon
+		icon.visible = true
+		icon.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		icon.offset_left = 6
+		icon.offset_top = 4
+		icon.offset_right = -6
+		icon.offset_bottom = 0
+		label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	else:
+		label.text = "%d\n%s\nx%d" % [slot_idx + 1, item.display_name.left(6), _actions.inventory.count_item(item)] if item else str(slot_idx + 1)
+		icon.visible = false
+		label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		if item != null:
+			_ensure_item_icon(item)
 	_update_slot_style(slot_idx)
+
+
+func _ensure_item_icon(item: ItemData) -> void:
+	if item.icon != null or item.world_scene == null or item.has_meta("generating_icon"):
+		return
+	item.set_meta("generating_icon", true)
+	ItemPreviewGenerator.generate_preview(item, self, func(_tex): _refresh_actions())
 
 func _on_action_used(index: int) -> void:
 	select_action_slot(index)

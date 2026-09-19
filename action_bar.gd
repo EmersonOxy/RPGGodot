@@ -26,6 +26,18 @@ func assign_item(index: int, item: ItemData) -> bool:
 	updated.emit()
 	return true
 
+func assign_first_free(item: ItemData) -> bool:
+	if item == null or item.item_type != ItemData.ItemType.CONSUMABLE or item.equipment_slot != ItemData.EquipmentSlot.NONE or inventory.count_item(item) == 0:
+		return false
+	# Já atribuído a algum atalho? Mantém como está.
+	for i in _entries.size():
+		if inventory.same_item_type(get_item(i), item):
+			return true
+	for i in _entries.size():
+		if _entries[i] == null:
+			return assign_item(i, item)
+	return false
+
 func clear_slot(index: int) -> void:
 	if index >= 0 and index < _entries.size():
 		_entries[index] = null

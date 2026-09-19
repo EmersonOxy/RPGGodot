@@ -104,3 +104,6 @@ func to_global_point(point: Vector2) -> Vector2:
 func _drop_data(at_position: Vector2, data: Variant) -> void:
 	if _can_drop_data(at_position, data):
 		_dropper.request_drop(data)
+
+func request_drop(data: Dictionary) -> void:
+	_dropper.request_drop(data)

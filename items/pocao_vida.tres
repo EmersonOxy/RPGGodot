@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://item_data.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/model/KayKit_Dungeon_Pack_1.1_FREE/Assets/gltf/bottle_C_green.gltf" id="2_bottle"]
 
 [resource]
 script = ExtResource("1")
@@ -13,3 +14,9 @@ stackable = true
 max_stack = 10
 icon_color = Color(0.9, 0.2, 0.2, 1)
 heal_amount = 35
+world_scene = ExtResource("2_bottle")
+world_scale = Vector3(0.4, 0.4, 0.4)
+world_rotation = Vector3(0, 0, 0)
+world_position = Vector3(0, 0, 0)
+world_display_mode = 1
+world_ground_offset = 0.0

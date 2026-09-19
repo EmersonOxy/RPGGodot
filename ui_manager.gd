@@ -4,6 +4,7 @@ const MENU_PAUSE := "pause"
 const MENU_INVENTORY := "inventory"
 
 var _menus := {}
+var _hold_opened := false
 
 
 func _ready() -> void:
@@ -51,6 +52,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		if ds:
 			ds.apply_interface_settings(ds.cursor_style, ds.show_controls, not ds.hud_visible, ds.cursor_size)
 		get_viewport().set_input_as_handled()
+	# Tab segurado abre o inventário; soltar fecha.
+	if event.is_action_pressed("hold_inventory") and not event.is_echo():
+		if get_tree().paused:
+			_hold_opened = false
+		elif not is_open(MENU_INVENTORY):
+			_open_inventory()
+			_hold_opened = true
+		get_viewport().set_input_as_handled()
+	elif event.is_action_released("hold_inventory"):
+		if _hold_opened and not get_tree().paused:
+			_close_inventory()
+		_hold_opened = false
+		get_viewport().set_input_as_handled()
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_I:
 			_toggle_inventory()
@@ -70,6 +84,25 @@ func _toggle_inventory() -> void:
 		inv.hide()
 	else:
 		inv.show()
+
+
+func _open_inventory() -> void:
+	var player := get_tree().get_first_node_in_group("player")
+	if player and player.is_dead:
+		return
+	var inv = _menus[MENU_INVENTORY]
+	if inv.has_method("open"):
+		inv.open()
+	elif not inv.visible:
+		inv.show()
+
+
+func _close_inventory() -> void:
+	var inv = _menus[MENU_INVENTORY]
+	if inv.has_method("close"):
+		inv.close()
+	elif inv.visible:
+		inv.hide()
 
 
 func _pause_game() -> void:

@@ -26,11 +26,6 @@ static func generate_preview(item: ItemData, parent_node: Node, callback: Callab
 	cam.environment.ambient_light_color = Color(1, 1, 1)
 	vp.add_child(cam)
 	
-	cam.position = Vector3(0, 0, 1.2)
-	if item.id == "espada_gasta" or item.id == "espada_ferro":
-		cam.position = Vector3(0.0, 0.4, 0.8)
-	cam.look_at(Vector3.ZERO)
-	
 	var light := DirectionalLight3D.new()
 	vp.add_child(light)
 	light.rotation_degrees = Vector3(-45, 45, 0)
@@ -48,6 +43,32 @@ static func generate_preview(item: ItemData, parent_node: Node, callback: Callab
 	
 	await parent_node.get_tree().process_frame
 	await parent_node.get_tree().process_frame
+	
+	# Enquadramento automático pelo AABB combinado real de todas as malhas:
+	# independe da escala física do mundo e da origem do modelo importado.
+	var combined := AABB()
+	var has_bounds := false
+	for mi in model.find_children("*", "MeshInstance3D", true, false):
+		if mi is MeshInstance3D and mi.mesh != null and mi.visible:
+			var world_aabb: AABB = mi.get_global_transform() * mi.mesh.get_aabb()
+			if world_aabb.size.length_squared() <= 0.0001:
+				continue
+			if not has_bounds:
+				combined = world_aabb
+				has_bounds = true
+			else:
+				combined = combined.merge(world_aabb)
+	
+	if has_bounds:
+		# Centraliza o modelo na origem.
+		model.position = -combined.get_center()
+		# Distância da câmera para a maior dimensão ocupar ~70% do viewport.
+		var max_dim: float = maxf(combined.size.x, maxf(combined.size.y, combined.size.z))
+		var half_fov := deg_to_rad(cam.fov) * 0.5
+		var distance: float = (max_dim * 0.5) / maxf(tan(half_fov), 0.01) / 0.7
+		cam.position = Vector3(0, 0, distance)
+		cam.look_at(Vector3.ZERO)
+		await parent_node.get_tree().process_frame
 	
 	var img = vp.get_texture().get_image()
 	var tex = ImageTexture.create_from_image(img)

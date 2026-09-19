@@ -70,3 +70,20 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 func _drop_data(at_position: Vector2, data: Variant) -> void:
 	if _can_drop_data(at_position, data):
 		_equipment.equip_from_bag(data, equipment_slot)
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.shift_pressed:
+			_unequip_to_bag()
+			accept_event()
+
+func _unequip_to_bag() -> void:
+	if _equipment == null or _item == null or get_tree().paused or _equipment.get_parent().is_dead:
+		return
+	var data := {"kind": "equipment_item", "equipment": _equipment, "slot": equipment_slot, "item": _item}
+	if _equipment.can_unequip(data, 0):
+		_equipment.unequip_to_bag(data, 0)
+	elif _equipment.inventory.find_space(_item) == Vector2i(-1, -1):
+		var scene := get_tree().current_scene
+		if scene and scene.has_method("show_notification"):
+			scene.show_notification("Sem espaço no inventário para desequipar")

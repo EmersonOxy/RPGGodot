@@ -1,5 +1,8 @@
-[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
 [ext_resource type="Script" path="res://item_data.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/model/KayKit_Dungeon_Pack_1.1_FREE/Assets/gltf/keyring.gltf" id="2_keyring"]
+
 [resource]
 script = ExtResource("1")
 id = "anel_simples"
@@ -8,3 +11,7 @@ description = "Equipamento de teste."
 item_type = 4
 equipment_slot = 8
 strength_bonus = 1
+world_scene = ExtResource("2_keyring")
+world_scale = Vector3(0.25, 0.25, 0.25)
+world_rotation = Vector3(1.2, 0, 0)
+world_position = Vector3(0, 0, 0)

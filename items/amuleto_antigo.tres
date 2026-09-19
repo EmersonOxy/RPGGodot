@@ -1,5 +1,8 @@
-[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
 [ext_resource type="Script" path="res://item_data.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/model/KayKit_Dungeon_Pack_1.1_FREE/Assets/gltf/key.gltf" id="2_key"]
+
 [resource]
 script = ExtResource("1")
 id = "amuleto_antigo"
@@ -8,3 +11,7 @@ description = "Equipamento de teste."
 item_type = 4
 equipment_slot = 9
 intelligence_bonus = 2
+world_scene = ExtResource("2_key")
+world_scale = Vector3(0.35, 0.35, 0.35)
+world_rotation = Vector3(0, 0, 0)
+world_position = Vector3(0, 0, 0)
