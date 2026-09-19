@@ -8,6 +8,13 @@ const RARITY_COLORS := {
 	4: Color(1.00, 0.65, 0.08),   # LEGENDARY - dourado / laranja
 }
 
+# Compensação visual de zoom: multiplicador aplicado apenas ao modelo 3D.
+const ZOOM_REFERENCE_SIZE := 19.0
+const ZOOM_SCALE_STRENGTH := 0.7
+const ZOOM_MIN_MULTIPLIER := 0.75
+const ZOOM_MAX_MULTIPLIER := 1.6
+const CAMERA_FOLLOW = preload("res://camera_follow.gd")
+
 var item: ItemData = null:
 	set(value):
 		item = value
@@ -38,9 +45,18 @@ var _label_fade: Tween
 var _mat: StandardMaterial3D
 var _backing_mesh: MeshInstance3D
 var _ring_mat: StandardMaterial3D
-var _base_label_y: float
 var _custom_model: Node3D = null
 var _custom_materials: Array[StandardMaterial3D] = []
+var _zoom_root: Node3D
+var _stacking_root: Node3D
+var _nameplate_scale_root: Node3D
+var _camera: Camera3D
+var _body_shape: CylinderShape3D
+var _label_width := 2.0
+var _label_manager: Node
+var _body_hovered := false
+var _label_hovered := false
+var _label_blocks_body := false
 
 @onready var visual_root: Node3D = $VisualRoot
 @onready var mesh: MeshInstance3D = $VisualRoot/MeshInstance3D
@@ -52,17 +68,52 @@ var _label_shape: BoxShape3D
 
 
 func _ready() -> void:
+	process_priority = 1 # Camera first, then visual dimensions, then manager (100).
 	add_to_group("loot")
 	if area:
 		area.add_to_group("loot")
 		area.mouse_entered.connect(_on_mouse_entered)
 		area.mouse_exited.connect(_on_mouse_exited)
 
+	# ZoomScaleRoot fica entre o loot e o VisualRoot: a compensação de zoom
+	# multiplica sem brigar com as animações de spawn/hover (que escrevem
+	# apenas no VisualRoot).
+	_zoom_root = Node3D.new()
+	_zoom_root.name = "ZoomScaleRoot"
+	add_child(_zoom_root)
+	remove_child(visual_root)
+	_zoom_root.add_child(visual_root)
+
+	# StackingRoot carrega apenas o label: o layout de pilha dos nameplates
+	# escreve nele, sem conflitar com a animação de nascimento do label.
+	_stacking_root = Node3D.new()
+	_stacking_root.name = "StackingRoot"
+	add_child(_stacking_root)
+	remove_child(label)
+	_nameplate_scale_root = Node3D.new()
+	_nameplate_scale_root.name = "NameplateScaleRoot"
+	_stacking_root.add_child(_nameplate_scale_root)
+	_nameplate_scale_root.position = label.position
+	label.position = Vector3.ZERO
+	_nameplate_scale_root.add_child(label)
+	_update_nameplate_zoom_scale()
+
+	# Registra no gerenciador central de layout dos nameplates.
+	_register_label_manager.call_deferred()
+
+	# O cilindro do corpo é compartilhado entre o StaticBody e a ClickArea;
+	# duplicado por instância para acompanhar parcialmente o zoom.
+	var body_collider := get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if body_collider and body_collider.shape is CylinderShape3D:
+		_body_shape = (body_collider.shape as CylinderShape3D).duplicate() as CylinderShape3D
+		body_collider.shape = _body_shape
+		var area_collider := get_node_or_null("ClickArea/CollisionShape3D") as CollisionShape3D
+		if area_collider:
+			area_collider.shape = _body_shape
+
 	collision_layer = 16
 	collision_mask = 0
 	set_collision_layer_value(5, true)
-
-	_base_label_y = label.position.y
 
 	# Guardar referência ao material do anel com material único por instância
 	if target_ring and target_ring.mesh and target_ring.mesh.material:
@@ -138,21 +189,23 @@ func _setup_visuals() -> void:
 
 
 func _create_or_update_backing() -> void:
+	var font := label.font if label.font != null else ThemeDB.fallback_font
+	var text_width := font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, label.font_size).x
+	var backing_width: float = text_width * label.pixel_size + 0.32
+	_label_width = backing_width
 	if _backing_mesh == null:
 		_backing_mesh = MeshInstance3D.new()
 		_backing_mesh.name = "LabelBacking"
 		var quad := QuadMesh.new()
-		var font := label.font if label.font != null else ThemeDB.fallback_font
-		var text_width := font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, label.font_size).x
-		var backing_width: float = text_width * label.pixel_size + 0.32
 		quad.size = Vector2(backing_width, 0.58)
-		_update_label_collision(backing_width)
 
 		var backing_material := StandardMaterial3D.new()
 		backing_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		backing_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		backing_material.albedo_color = Color(0.02, 0.025, 0.02, 0.85)
 		backing_material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		# Preserve inherited zoom/spawn scale when the shader faces the camera.
+		backing_material.billboard_keep_scale = true
 		backing_material.no_depth_test = true
 		backing_material.render_priority = 9
 		quad.material = backing_material
@@ -161,6 +214,8 @@ func _create_or_update_backing() -> void:
 		_backing_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		label.add_child(_backing_mesh)
 		_backing_mesh.position = Vector3(0, 0, -0.01)
+	(_backing_mesh.mesh as QuadMesh).size = Vector2(backing_width, 0.58)
+	_update_label_collision(backing_width)
 
 	_start_bob_animation()
 
@@ -175,13 +230,26 @@ func _update_label_collision(width: float) -> void:
 		else:
 			_label_shape = BoxShape3D.new()
 		_label_collision.shape = _label_shape
-	_label_shape.size = Vector3(width, 0.58, 0.4)
-	# A caixa precisa encarar a câmera como o fundo visual: alinhada aos eixos
-	# do mundo, a silhueta projetada fica menor que o retângulo visível.
-	var cam := get_viewport().get_camera_3d()
-	if cam != null:
-		_label_collision.global_basis = cam.global_basis
-	_label_collision.position.y = label.position.y
+	_label_shape.size = Vector3(width, 0.58, 0.04)
+	_sync_label_collision()
+
+
+func _sync_label_collision() -> void:
+	if _label_collision == null or _label_shape == null or _backing_mesh == null:
+		return
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return
+	# Billboard dimensions include both zoom and spawn scale.
+	var size := Vector3(maxf(get_label_width(), 0.001), maxf(get_label_height(), 0.001), 0.04)
+	if not _label_shape.size.is_equal_approx(size):
+		_label_shape.size = size
+	var transform := Transform3D(camera.global_basis.orthonormalized(), _backing_mesh.global_position)
+	if _label_collision.global_transform != transform:
+		_label_collision.global_transform = transform
+	var disabled := not is_label_visible()
+	if _label_collision.disabled != disabled:
+		_label_collision.set_deferred("disabled", disabled)
 
 
 func _start_bob_animation() -> void:
@@ -208,16 +276,31 @@ func _start_bob_animation() -> void:
 func _on_mouse_entered() -> void:
 	if _spawning:
 		return
-	_is_hovered = true
-	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
-	_update_visual_state(true)
+	_body_hovered = true
+	_refresh_mouse_hover()
 
 
 func _on_mouse_exited() -> void:
 	if _spawning:
 		return
-	_is_hovered = false
-	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	_body_hovered = false
+	_refresh_mouse_hover()
+
+
+func set_label_hover(hovered: bool, blocks_body: bool) -> void:
+	_label_hovered = hovered
+	_label_blocks_body = blocks_body
+	_refresh_mouse_hover()
+
+
+func _refresh_mouse_hover() -> void:
+	var hovered := not _spawning and (_label_hovered or (_body_hovered and not _label_blocks_body))
+	if _label_hovered:
+		Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
+	if hovered == _is_hovered:
+		return
+	_is_hovered = hovered
+	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if hovered else Input.CURSOR_ARROW)
 	_update_visual_state(true)
 
 
@@ -312,40 +395,90 @@ func _update_visual_state(animate: bool) -> void:
 		label.outline_size = target_outline
 
 
+func _update_zoom_scale() -> void:
+	if _zoom_root == null:
+		return
+	_camera = get_viewport().get_camera_3d()
+	if _camera == null:
+		return
+	# Compensação parcial: zoom out aumenta o modelo, zoom in diminui.
+	var ratio := _camera.size / ZOOM_REFERENCE_SIZE
+	var multiplier := clampf(pow(ratio, ZOOM_SCALE_STRENGTH), ZOOM_MIN_MULTIPLIER, ZOOM_MAX_MULTIPLIER)
+	_zoom_root.scale = Vector3.ONE * multiplier
+	# Hitbox do modelo usa sua compensação parcial independente do nameplate.
+	if _body_shape != null:
+		_body_shape.radius = 0.45 * multiplier
+		_body_shape.height = 1.1 * multiplier
+
+
+func _update_nameplate_zoom_scale() -> void:
+	var camera := get_viewport().get_camera_3d()
+	if camera != null and _nameplate_scale_root != null:
+		_nameplate_scale_root.scale = Vector3.ONE * (camera.size / CAMERA_FOLLOW.REFERENCE_CAMERA_SIZE)
+
+
+## API usada pelo LootLabelManager para o layout dos nameplates.
+func is_label_ready() -> bool:
+	return label != null and not _spawning and _backing_mesh != null and (_label_fade == null or not _label_fade.is_running())
+
+
+func is_label_visible() -> bool:
+	return label != null and _backing_mesh != null and label.is_visible_in_tree() and label.modulate.a > 0.01 and not _spawning and not _collected
+
+
+func get_label_base_position() -> Vector3:
+	# Actual visual center, including all parent transforms, but excluding stacking.
+	# Rebuild from the base instead of subtracting nearly equal float positions.
+	return (global_transform * Transform3D(_stacking_root.basis, Vector3.ZERO) * _nameplate_scale_root.transform * label.transform * _backing_mesh.transform).origin
+
+
+func get_label_width() -> float:
+	return (_backing_mesh.mesh as QuadMesh).size.x * _backing_mesh.global_basis.get_scale().abs().x
+
+
+func get_label_height() -> float:
+	return (_backing_mesh.mesh as QuadMesh).size.y * _backing_mesh.global_basis.get_scale().abs().y
+
+
+func get_label_screen_rect(camera: Camera3D, stacked: bool = true) -> Rect2:
+	var center := _backing_mesh.global_position if stacked else get_label_base_position()
+	var right := camera.global_basis.x.normalized() * get_label_width() * 0.5
+	var up := camera.global_basis.y.normalized() * get_label_height() * 0.5
+	var rect := Rect2(camera.unproject_position(center - right - up), Vector2.ZERO)
+	rect = rect.expand(camera.unproject_position(center + right - up))
+	rect = rect.expand(camera.unproject_position(center - right + up))
+	return rect.expand(camera.unproject_position(center + right + up))
+
+
+func apply_stack_offset(target: Vector3, weight: float) -> void:
+	if _stacking_root == null:
+		return
+	_stacking_root.position = _stacking_root.position.lerp(global_basis.inverse() * target, weight)
+	_sync_label_collision()
+
+
+func _register_label_manager() -> void:
+	if not is_inside_tree():
+		return
+	_label_manager = get_tree().get_first_node_in_group("loot_label_manager")
+	if is_instance_valid(_label_manager):
+		_label_manager.register_loot(self)
+
+
 func _process(_delta: float) -> void:
+	_update_zoom_scale()
+	_update_nameplate_zoom_scale()
 	var player := get_tree().get_first_node_in_group("player") as Node3D
 	label.visible = not _spawning and (player == null or global_position.distance_to(player.global_position) <= label_distance)
-
-	# Offset vertical para evitar sobreposição de nomes de loots próximos.
-	# Pausado enquanto a animação de nascimento do label está rodando.
-	if _label_fade == null or not _label_fade.is_running():
-		_update_label_offset()
-
-
-func _update_label_offset() -> void:
-	var my_pos := global_position
-	var offset_index := 0
-	for node in get_tree().get_nodes_in_group("loot"):
-		if node == self or node is Area3D:
-			continue
-		if not node is StaticBody3D:
-			continue
-		var other_pos: Vector3 = node.global_position
-		var dist_xz := Vector2(my_pos.x - other_pos.x, my_pos.z - other_pos.z).length()
-		if dist_xz < 1.2:
-			# Desempatar por instance_id para ordenação estável
-			if node.get_instance_id() < get_instance_id():
-				offset_index += 1
-	label.position.y = _base_label_y + offset_index * 0.45
-	var label_col := get_node_or_null("ClickArea/LabelCollision") as Node3D
-	if label_col:
-		label_col.position.y = label.position.y
+	_sync_label_collision()
 
 
 func _exit_tree() -> void:
 	if _is_hovered:
 		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 	_stop_pulse()
+	if is_instance_valid(_label_manager):
+		_label_manager.unregister_loot(self)
 
 
 func _play_pickup_sound() -> void:
@@ -423,6 +556,7 @@ func _set_label_spawn(t: float, start_center: Vector3, final_center: Vector3, ou
 	label.scale = Vector3.ONE * s
 	label.position = start_center.lerp(final_center, t) - _label_anchor * s
 	label.outline_size = lerpf(outline_final * 0.2, outline_final, t)
+	_sync_label_collision()
 
 
 func _kill_spawn_tweens() -> void:

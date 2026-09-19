@@ -5,6 +5,7 @@ extends Camera3D
 
 const ZOOM_LEVELS: Array[float] = [6.0, 8.0, 10.0, 12.0, 15.0, 19.0, 23.0, 27.0]
 const DEFAULT_ZOOM_INDEX: int = 5
+const REFERENCE_CAMERA_SIZE: float = ZOOM_LEVELS[DEFAULT_ZOOM_INDEX]
 
 ## Quanto maior, mais rápida a transição vertical (5 ≈ suave sem atraso).
 @export var vertical_smooth_speed: float = 5.0
@@ -45,13 +46,11 @@ func _ready() -> void:
 
 	_target_size = ZOOM_LEVELS[_zoom_index]
 	size = _target_size
+	_update_projection_offsets()
 
 
 func _process(delta: float) -> void:
 	_hit_time = maxf(0.0, _hit_time - delta)
-	var hit_weight := pow(_hit_time / HIT_DURATION, 2.0)
-	h_offset = _hit_offset.x * hit_weight
-	v_offset = _hit_offset.y * hit_weight
 	if not is_instance_valid(_target):
 		_target = get_tree().get_first_node_in_group("player") as Node3D
 		if not is_instance_valid(_target):
@@ -68,6 +67,17 @@ func _process(delta: float) -> void:
 		size = lerpf(size, _target_size, 1.0 - exp(-zoom_smooth_speed * delta))
 		if absf(size - _target_size) < 0.01:
 			size = _target_size
+	_update_projection_offsets()
+
+
+func _update_projection_offsets() -> void:
+	# Scale the off-axis composition with the orthographic span, not camera distance.
+	# At the reference zoom this correction is exactly zero. Keep hit shake additive.
+	var ratio_delta := size / REFERENCE_CAMERA_SIZE - 1.0
+	var axes := global_basis.orthonormalized()
+	var hit_weight := pow(_hit_time / HIT_DURATION, 2.0)
+	h_offset = _offset.dot(axes.x) * ratio_delta + _hit_offset.x * hit_weight
+	v_offset = _offset.dot(axes.y) * ratio_delta + _hit_offset.y * hit_weight
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -103,6 +113,7 @@ func set_zoom_index(idx: int, immediate: bool = false) -> void:
 	_target_size = ZOOM_LEVELS[_zoom_index]
 	if immediate:
 		size = _target_size
+		_update_projection_offsets()
 
 
 func get_zoom_index() -> int:

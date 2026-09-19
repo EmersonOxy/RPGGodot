@@ -109,6 +109,15 @@ func _physics_process(_delta: float) -> void:
 	click_pending = false
 	if player.is_dead:
 		return
+	# Nameplates render above the world; pick their visible rectangles before a body
+	# or terrain ray can intercept the click (including while stacking is moving).
+	var label_manager := get_node_or_null("LootLabelManager")
+	if label_manager:
+		var label_loot: Node3D = label_manager.get_loot_at_screen_position(click_position)
+		if label_loot != null:
+			select_enemy(null)
+			player.approach_loot(label_loot)
+			return
 
 	var origin := camera.project_ray_origin(click_position)
 	var end := origin + camera.project_ray_normal(click_position) * 100.0
