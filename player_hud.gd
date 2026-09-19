@@ -29,6 +29,7 @@ var _action_slots: Array[PanelContainer] = []
 var _action_labels: Array[Label] = []
 var _action_icons: Array[TextureRect] = []
 var _action_data: Array = [null, null, null, null, null]
+var _action_qtys: Array = [0, 0, 0, 0, 0]
 var _selected_action_slot: int = -1
 var _hovered_action_slot: int = -1
 
@@ -72,6 +73,13 @@ func _ready() -> void:
 		_actions.updated.connect(_refresh_actions)
 		_actions.used.connect(_on_action_used)
 		_refresh_actions()
+	# Atualiza a hotbar quando qualquer preview termina de gerar.
+	if not Acquisitions.icon_ready.is_connected(_on_item_icon_ready):
+		Acquisitions.icon_ready.connect(_on_item_icon_ready)
+
+
+func _on_item_icon_ready(_item: ItemData) -> void:
+	_refresh_actions()
 
 
 func _on_interface_settings() -> void:
@@ -292,13 +300,45 @@ func clear_action_slot(slot_idx: int) -> void:
 
 func _refresh_actions() -> void:
 	for i in _action_slots.size():
-		_action_data[i] = _actions.get_item(i)
+		var new_item: ItemData = _actions.get_item(i)
+		var old_item: ItemData = _action_data[i]
+		var new_qty: int = _actions.inventory.count_item(new_item) if new_item else 0
+		var old_qty: int = _action_qtys[i]
+		_action_data[i] = new_item
+		_action_qtys[i] = new_qty
 		_update_slot_display(i)
+		# Polimento visual: pop ao equipar na barra e pulse quando a pilha cresce.
+		if new_item != null and new_item != old_item:
+			_pop_action_slot(i)
+		elif new_item != null and new_qty > old_qty:
+			_pulse_action_label(i)
 	if _hovered_action_slot >= 0:
 		var tip := get_tree().get_first_node_in_group("item_tooltip")
 		if tip:
 			tip.hide_tooltip()
 		_on_action_slot_mouse_entered(_hovered_action_slot)
+
+
+func _pop_action_slot(slot_idx: int) -> void:
+	var slot := _action_slots[slot_idx]
+	slot.pivot_offset = slot.size * 0.5
+	slot.scale = Vector2.ONE * 1.1
+	slot.modulate.a = 0.85
+	var tween := slot.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(slot, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(slot, "modulate:a", 1.0, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _pulse_action_label(slot_idx: int) -> void:
+	var label := _action_labels[slot_idx]
+	if label.has_meta("pop_tween") and label.get_meta("pop_tween") != null:
+		(label.get_meta("pop_tween") as Tween).kill()
+	label.pivot_offset = label.size * 0.5
+	label.scale = Vector2.ONE * 1.15
+	var tween := label.create_tween()
+	label.set_meta("pop_tween", tween)
+	tween.tween_property(label, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _update_slot_display(slot_idx: int) -> void:
 	var item: ItemData = _actions.get_item(slot_idx)

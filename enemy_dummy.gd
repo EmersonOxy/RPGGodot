@@ -120,6 +120,15 @@ func _drop_loot() -> void:
 	if drop_table == null:
 		return
 	var rolls = drop_table.roll()
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		scene_root = get_parent()
+		while scene_root.get_parent() != null and scene_root.get_parent() != get_tree().root:
+			scene_root = scene_root.get_parent()
+	var total := 0
+	for drop in rolls:
+		total += int(drop["count"])
+	var index := 0
 	for drop in rolls:
 		var item_data = drop["item"]
 		var count: int = drop["count"]
@@ -127,14 +136,14 @@ func _drop_loot() -> void:
 			var loot_scene := preload("res://world_loot.tscn")
 			var loot: Node3D = loot_scene.instantiate()
 			loot.item = item_data
-			var offset := Vector3(randf_range(-0.5, 0.5), 0.0, randf_range(-0.5, 0.5))
-			loot.position = _find_surface_position(global_position + offset)
-			var scene_root := get_tree().current_scene
-			if scene_root == null:
-				scene_root = get_parent()
-				while scene_root.get_parent() != null and scene_root.get_parent() != get_tree().root:
-					scene_root = scene_root.get_parent()
+			# Loot burst: destinos distribuídos ao redor do inimigo, sem sobrepor.
+			var angle := TAU * float(index) / float(maxi(total, 1)) + randf_range(-0.4, 0.4)
+			var radius := randf_range(0.35, 0.7)
+			var scatter := Vector3(cos(angle), 0.0, sin(angle)) * radius
+			var target := _find_surface_position(global_position + scatter)
 			scene_root.add_child(loot)
+			loot.play_spawn(global_position + Vector3.UP * 0.45, target, randf_range(0.3, 0.45), randf_range(0.3, 0.4))
+			index += 1
 
 
 func _find_surface_position(pos: Vector3) -> Vector3:

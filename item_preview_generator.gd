@@ -74,6 +74,7 @@ static func generate_preview(item: ItemData, parent_node: Node, callback: Callab
 	var tex = ImageTexture.create_from_image(img)
 	item.icon = tex
 	item.remove_meta("generating_icon")
+	Acquisitions.icon_ready.emit(item)
 	
 	vp.queue_free()
 	callback.call(tex)

@@ -245,7 +245,8 @@ func apply_all_settings() -> void:
 
 	_last_applied_zoom = default_zoom_index
 	settings_applied.emit()
-	_apply_interface_settings()
+	# Deferred: garante que a janela já exista ao aplicar o cursor customizado no boot.
+	_apply_interface_settings.call_deferred()
 
 
 func apply_audio_settings(values: Dictionary) -> Error:

@@ -8,6 +8,8 @@ var inventory: Node
 var _bg_grid: GridContainer
 var _items_parent: Control
 var _drag_ghost: ColorRect
+var _item_rects: Dictionary = {}
+var _prev_snapshot: Dictionary = {}
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(10 * CELL_SIZE + 9 * SPACING, 6 * CELL_SIZE + 5 * SPACING)
@@ -42,12 +44,23 @@ func _ready() -> void:
 		inventory = player.get_node("Inventory")
 		inventory.updated.connect(refresh)
 		refresh()
+	# Reage quando qualquer preview termina de gerar (fonte única de ícones).
+	if not Acquisitions.icon_ready.is_connected(_on_item_icon_ready):
+		Acquisitions.icon_ready.connect(_on_item_icon_ready)
+
+func _on_item_icon_ready(_item: ItemData) -> void:
+	refresh()
 
 func refresh() -> void:
 	for c in _items_parent.get_children():
 		c.queue_free()
-		
+	_item_rects.clear()
+	
 	if not inventory: return
+	
+	var snapshot := {}
+	for p in inventory.get_all_placements():
+		snapshot[p] = {"origin": p.origin, "quantity": p.quantity}
 	
 	for p in inventory.get_all_placements():
 		var item_rect = TextureRect.new()
@@ -74,15 +87,16 @@ func refresh() -> void:
 			if p.item.world_scene != null and not p.item.has_meta("generating_icon"):
 				p.item.set_meta("generating_icon", true)
 				ItemPreviewGenerator.generate_preview(p.item, self, func(_tex): refresh())
-			
-			var name_label = Label.new()
-			name_label.text = p.item.display_name
-			name_label.set_anchors_preset(PRESET_FULL_RECT)
-			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			name_label.add_theme_font_size_override("font_size", 10)
-			item_rect.add_child(name_label)
+			# Placeholder neutro: nunca o nome do item espremido no slot.
+			var placeholder := ColorRect.new()
+			placeholder.color = Color(0.45, 0.45, 0.48, 0.5)
+			placeholder.set_anchors_preset(PRESET_CENTER)
+			placeholder.offset_left = -10
+			placeholder.offset_top = -10
+			placeholder.offset_right = 10
+			placeholder.offset_bottom = 10
+			placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			item_rect.add_child(placeholder)
 		
 		if p.quantity > 1:
 			var qty_label = Label.new()
@@ -99,6 +113,7 @@ func refresh() -> void:
 			qty_label.add_theme_color_override("font_outline_color", Color.BLACK)
 			qty_label.add_theme_constant_override("outline_size", 4)
 			item_rect.add_child(qty_label)
+			item_rect.set_meta("qty_label", qty_label)
 		
 		item_rect.mouse_filter = Control.MOUSE_FILTER_STOP
 		item_rect.mouse_entered.connect(_on_item_hovered.bind(item_rect))
@@ -192,6 +207,45 @@ func _gui_input(event: InputEvent) -> void:
 		item_rect.set("owner_grid", self)
 		
 		_items_parent.add_child(item_rect)
+		_item_rects[p] = item_rect
+	
+	# Polimento visual: pop de assentamento para itens novos/movidos e pulse
+	# do contador quando a pilha cresce. A lógica de posição já está aplicada.
+	for p in snapshot:
+		var prev: Variant = _prev_snapshot.get(p, null)
+		var rect: Control = _item_rects.get(p, null)
+		if rect == null or not is_instance_valid(rect):
+			continue
+		if prev == null or prev.origin != snapshot[p].origin:
+			_pop_rect(rect)
+		elif snapshot[p].quantity > prev.quantity:
+			var qty: Control = rect.get_meta("qty_label")
+			if qty:
+				_pulse_label(qty)
+	_prev_snapshot = snapshot
+
+
+func _pop_rect(rect: Control) -> void:
+	if rect.has_meta("pop_tween") and rect.get_meta("pop_tween") != null:
+		(rect.get_meta("pop_tween") as Tween).kill()
+	rect.pivot_offset = rect.size * 0.5
+	rect.scale = Vector2.ONE * 1.08
+	rect.modulate.a = 0.85
+	var tween := rect.create_tween()
+	rect.set_meta("pop_tween", tween)
+	tween.set_parallel(true)
+	tween.tween_property(rect, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(rect, "modulate:a", 1.0, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _pulse_label(label: Control) -> void:
+	if label.has_meta("pop_tween") and label.get_meta("pop_tween") != null:
+		(label.get_meta("pop_tween") as Tween).kill()
+	label.pivot_offset = label.size * 0.5
+	label.scale = Vector2.ONE * 1.15
+	var tween := label.create_tween()
+	label.set_meta("pop_tween", tween)
+	tween.tween_property(label, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _apply_item_border(panel: Panel, item: ItemData, is_new: bool) -> void:
 	var style := StyleBoxFlat.new()

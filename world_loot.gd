@@ -27,10 +27,14 @@ var item: ItemData = null:
 var _collected := false
 var _is_hovered := false
 var _is_targeted := false
+var _spawning := false
+var _label_anchor := Vector3.ZERO
 var _bob_tween: Tween
 var _rot_tween: Tween
 var _hover_tween: Tween
 var _pulse_tween: Tween
+var _spawn_tween: Tween
+var _label_fade: Tween
 var _mat: StandardMaterial3D
 var _backing_mesh: MeshInstance3D
 var _ring_mat: StandardMaterial3D
@@ -43,6 +47,8 @@ var _custom_materials: Array[StandardMaterial3D] = []
 @onready var label: Label3D = $Label3D
 @onready var area: Area3D = $ClickArea
 @onready var target_ring: MeshInstance3D = get_node_or_null("TargetRing")
+@onready var _label_collision: CollisionShape3D = get_node_or_null("ClickArea/LabelCollision")
+var _label_shape: BoxShape3D
 
 
 func _ready() -> void:
@@ -118,7 +124,7 @@ func _setup_visuals() -> void:
 	label.modulate = rarity_color
 	label.outline_modulate = Color.BLACK
 	label.outline_size = 12
-	label.pixel_size = 0.009
+	label.pixel_size = 0.0063
 	label.font_size = 48
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
@@ -138,7 +144,9 @@ func _create_or_update_backing() -> void:
 		var quad := QuadMesh.new()
 		var font := label.font if label.font != null else ThemeDB.fallback_font
 		var text_width := font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, label.font_size).x
-		quad.size = Vector2(text_width * label.pixel_size + 0.32, 0.58)
+		var backing_width: float = text_width * label.pixel_size + 0.32
+		quad.size = Vector2(backing_width, 0.58)
+		_update_label_collision(backing_width)
 
 		var backing_material := StandardMaterial3D.new()
 		backing_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -155,6 +163,25 @@ func _create_or_update_backing() -> void:
 		_backing_mesh.position = Vector3(0, 0, -0.01)
 
 	_start_bob_animation()
+
+
+func _update_label_collision(width: float) -> void:
+	# A área interativa do nome acompanha exatamente o fundo visível.
+	if _label_collision == null:
+		return
+	if _label_shape == null:
+		if _label_collision.shape is BoxShape3D:
+			_label_shape = (_label_collision.shape as BoxShape3D).duplicate() as BoxShape3D
+		else:
+			_label_shape = BoxShape3D.new()
+		_label_collision.shape = _label_shape
+	_label_shape.size = Vector3(width, 0.58, 0.4)
+	# A caixa precisa encarar a câmera como o fundo visual: alinhada aos eixos
+	# do mundo, a silhueta projetada fica menor que o retângulo visível.
+	var cam := get_viewport().get_camera_3d()
+	if cam != null:
+		_label_collision.global_basis = cam.global_basis
+	_label_collision.position.y = label.position.y
 
 
 func _start_bob_animation() -> void:
@@ -179,12 +206,16 @@ func _start_bob_animation() -> void:
 
 
 func _on_mouse_entered() -> void:
+	if _spawning:
+		return
 	_is_hovered = true
 	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
 	_update_visual_state(true)
 
 
 func _on_mouse_exited() -> void:
+	if _spawning:
+		return
 	_is_hovered = false
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 	_update_visual_state(true)
@@ -220,7 +251,7 @@ func _set_ring_alpha(a: float) -> void:
 
 
 func _update_visual_state(animate: bool) -> void:
-	if item == null:
+	if item == null or _spawning:
 		return
 
 	var rarity_color: Color = RARITY_COLORS.get(item.rarity, RARITY_COLORS[0])
@@ -283,10 +314,12 @@ func _update_visual_state(animate: bool) -> void:
 
 func _process(_delta: float) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node3D
-	label.visible = player == null or global_position.distance_to(player.global_position) <= label_distance
+	label.visible = not _spawning and (player == null or global_position.distance_to(player.global_position) <= label_distance)
 
-	# Offset vertical para evitar sobreposição de nomes de loots próximos
-	_update_label_offset()
+	# Offset vertical para evitar sobreposição de nomes de loots próximos.
+	# Pausado enquanto a animação de nascimento do label está rodando.
+	if _label_fade == null or not _label_fade.is_running():
+		_update_label_offset()
 
 
 func _update_label_offset() -> void:
@@ -332,8 +365,83 @@ func _play_pickup_sound() -> void:
 	player.play()
 
 
+func play_spawn(start_position: Vector3, target_position: Vector3, peak_height: float = 0.25, duration: float = 0.3) -> void:
+	# Animação visual de "largar/jogar": arco curto, escala sobe até 1 e squash
+	# discreto ao pousar. Não altera world_scale nem a lógica de pickup.
+	_spawning = true
+	label.visible = false
+	label.modulate.a = 0.0
+	_kill_spawn_tweens()
+	global_position = start_position
+	visual_root.scale = Vector3.ONE * 0.7
+	var tween := create_tween()
+	_spawn_tween = tween
+	tween.tween_method(_set_arc_position.bind(start_position, target_position, peak_height), 0.0, 1.0, duration)
+	tween.set_parallel(true)
+	tween.tween_property(visual_root, "scale", Vector3.ONE, duration * 0.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(visual_root, "rotation:y", 0.0, duration).from(randf_range(-0.5, 0.5))
+	tween.chain()
+	tween.tween_property(visual_root, "scale", Vector3.ONE * 1.06, 0.06).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(visual_root, "scale", Vector3.ONE, 0.08).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_callback(_finish_spawn)
+
+
+func _set_arc_position(t: float, start: Vector3, target: Vector3, peak: float) -> void:
+	var p := start.lerp(target, t)
+	p.y += peak * sin(t * PI)
+	global_position = p
+
+
+func _finish_spawn() -> void:
+	if not is_inside_tree():
+		return
+	_spawning = false
+	_update_visual_state(false)
+	label.visible = true
+	# Âncora: centro visual do texto em coordenadas locais do label, para que
+	# o crescimento parta do centro e não do canto.
+	_label_anchor = Vector3.ZERO
+	var aabb := label.get_aabb()
+	if aabb.size.length_squared() > 0.0001:
+		_label_anchor = aabb.get_center()
+	var final_center := label.position + _label_anchor
+	var start_center := final_center + Vector3(0.0, -0.18, 0.0)
+	var outline_final: float = label.outline_size
+	label.scale = Vector3.ONE * 0.2
+	label.modulate.a = 0.0
+	# Texto e contorno nascem juntos de dentro do item: escala + subida + outline
+	# proporcionais em uma única interpolação; alpha acompanha em paralelo.
+	_label_fade = create_tween()
+	_label_fade.set_parallel(true)
+	_label_fade.tween_method(_set_label_spawn.bind(start_center, final_center, outline_final), 0.0, 1.0, 0.38).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_label_fade.tween_property(label, "modulate:a", 1.0, 0.38).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_start_bob_animation()
+
+
+func _set_label_spawn(t: float, start_center: Vector3, final_center: Vector3, outline_final: float) -> void:
+	var s: float = lerpf(0.2, 1.0, t)
+	label.scale = Vector3.ONE * s
+	label.position = start_center.lerp(final_center, t) - _label_anchor * s
+	label.outline_size = lerpf(outline_final * 0.2, outline_final, t)
+
+
+func _kill_spawn_tweens() -> void:
+	if _spawn_tween:
+		_spawn_tween.kill()
+		_spawn_tween = null
+	if _label_fade:
+		_label_fade.kill()
+		_label_fade = null
+	if _bob_tween:
+		_bob_tween.kill()
+		_bob_tween = null
+	if _rot_tween:
+		_rot_tween.kill()
+		_rot_tween = null
+
+
 func try_pickup(inventory) -> bool:
-	if _collected or inventory == null or item == null:
+	if _collected or inventory == null or item == null or _spawning:
 		return false
 	if not inventory.can_add(item, quantity):
 		return false

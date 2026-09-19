@@ -45,7 +45,9 @@ func _physics_process(_delta: float) -> void:
 	loot.item = data.item
 	loot.quantity = data.get("quantity", 1)
 	get_tree().current_scene.add_child(loot)
-	loot.global_position = point.position + Vector3.UP * 0.04
+	var target: Vector3 = point.position + Vector3.UP * 0.04
+	# Drop manual: arco curto e discreto saindo do personagem.
+	loot.play_spawn(player.global_position + Vector3.UP * 0.55, target, 0.15, 0.28)
 	
 	if kind == "inventory_item":
 		var inventory: Node = data.get("inventory")

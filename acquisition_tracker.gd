@@ -3,6 +3,7 @@ extends Node
 ## marcação de itens novos no inventário.
 
 signal acquired(item: ItemData, qty: int)
+signal icon_ready(item: ItemData)
 
 var _new_items: Dictionary = {}
 

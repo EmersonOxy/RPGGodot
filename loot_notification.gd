@@ -195,8 +195,9 @@ func _update_card(card: PanelContainer, item: ItemData, qty: int) -> void:
 	if item.icon != null:
 		icon.texture = item.icon
 	else:
+		# Placeholder neutro apenas enquanto o preview real é gerado.
 		var image := Image.create_empty(8, 8, false, Image.FORMAT_RGBA8)
-		image.fill(item.icon_color)
+		image.fill(Color(0.35, 0.35, 0.38, 0.6))
 		icon.texture = ImageTexture.create_from_image(image)
 	var name_label: Label = card.get_meta("name_label")
 	name_label.text = item.display_name
@@ -306,6 +307,8 @@ func _maybe_hide(delay: float) -> void:
 
 
 func _on_acquired(item: ItemData, qty: int) -> void:
+	# Garante que o preview real exista e atualiza os cards quando ele chegar.
+	_ensure_item_icon(item)
 	# Empilha com a próxima pendente, com a principal (renovando o tempo) ou
 	# com a futura já na tela.
 	if not _queue.is_empty():
@@ -322,6 +325,19 @@ func _on_acquired(item: ItemData, qty: int) -> void:
 		return
 	_queue.append({"item": item, "qty": qty})
 	_ensure_stack()
+
+
+func _ensure_item_icon(item: ItemData) -> void:
+	if item.icon != null or item.world_scene == null or item.has_meta("generating_icon"):
+		return
+	item.set_meta("generating_icon", true)
+	ItemPreviewGenerator.generate_preview(item, self, func(_tex): _refresh_card_icon(item))
+
+
+func _refresh_card_icon(item: ItemData) -> void:
+	for card in _cards:
+		if is_instance_valid(card) and card.get_meta("item") == item:
+			_update_card(card, item, int(card.get_meta("qty")))
 
 
 func _ensure_stack() -> void:

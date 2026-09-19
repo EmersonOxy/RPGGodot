@@ -3,6 +3,7 @@ extends "res://inventory_slot.gd"
 @export var equipment_slot: ItemData.EquipmentSlot = ItemData.EquipmentSlot.NONE
 @export var slot_label: String = ""
 var _equipment: Node
+var _last_item: ItemData = null
 
 var _drag_feedback: Node
 
@@ -25,6 +26,12 @@ func setup_equipment(component: Node) -> void:
 	_equipment.changed.connect(_update_visual)
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
+	# Atualiza o slot quando o preview do item equipado terminar de gerar.
+	if not Acquisitions.icon_ready.is_connected(_on_item_icon_ready):
+		Acquisitions.icon_ready.connect(_on_item_icon_ready)
+	_update_visual()
+
+func _on_item_icon_ready(_item: ItemData) -> void:
 	_update_visual()
 
 func _update_visual() -> void:
@@ -39,6 +46,20 @@ func _update_visual() -> void:
 	if is_visible_in_tree() and get_global_rect().has_point(get_global_mouse_position()):
 		_on_mouse_exited()
 		_on_mouse_entered()
+	# Polimento visual: pop de assentamento quando um item é equipado.
+	if item != _last_item:
+		_last_item = item
+		if item != null:
+			_pop_settle()
+
+func _pop_settle() -> void:
+	pivot_offset = size * 0.5
+	scale = Vector2.ONE * 1.1
+	modulate.a = 0.85
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(self, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "modulate:a", 1.0, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if _equipment == null or _item == null or get_tree().paused or _equipment.get_parent().is_dead:
