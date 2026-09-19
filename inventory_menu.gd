@@ -1,9 +1,11 @@
 extends Control
 
 @export var fade_duration := 0.25
+@export var slide_duration := 0.3
 var _inventory: Node
 var _is_open := false
 var _fade_tween: Tween
+var _panel_rest_x := 0.0
 var _slots: Array[Control] = []
 var _dropper: Node
 @onready var _panel: Control = $Panel
@@ -12,6 +14,7 @@ var _dropper: Node
 func _ready() -> void:
 	hide()
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_panel_rest_x = _panel.position.x
 	_dropper = preload("res://inventory_dropper.gd").new()
 	_dropper.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(_dropper)
@@ -48,21 +51,29 @@ func open() -> void:
 	if _fade_tween: _fade_tween.kill()
 	if not visible:
 		modulate.a = 0.0
+		_panel.position.x = _panel_rest_x + _panel.size.x
 	show()
-	_animate_fade(1.0)
+	# Fade + slide de entrada: o painel desliza da direita até a posição final.
+	_fade_tween = create_tween()
+	_fade_tween.set_parallel(true)
+	_fade_tween.tween_property(self, "modulate:a", 1.0, fade_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_fade_tween.tween_property(_panel, "position:x", _panel_rest_x, slide_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func close() -> void:
 	_is_open = false
 	if _fade_tween: _fade_tween.kill()
-	_animate_fade(0.0)
-	_fade_tween.tween_callback(hide)
 	var tooltip_node := get_tree().get_first_node_in_group("item_tooltip")
 	if tooltip_node: tooltip_node.hide_tooltip()
-
-func _animate_fade(alpha: float) -> void:
+	# Fade + slide de saída: o painel desliza para fora, à direita.
 	_fade_tween = create_tween()
-	_fade_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	_fade_tween.tween_property(self, "modulate:a", alpha, fade_duration)
+	_fade_tween.set_parallel(true)
+	_fade_tween.tween_property(self, "modulate:a", 0.0, fade_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_fade_tween.tween_property(_panel, "position:x", _panel_rest_x + _panel.size.x, slide_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_fade_tween.chain().tween_callback(_finish_close)
+
+func _finish_close() -> void:
+	_panel.position.x = _panel_rest_x
+	hide()
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_BEGIN and _is_open:
 		mouse_filter = Control.MOUSE_FILTER_STOP
