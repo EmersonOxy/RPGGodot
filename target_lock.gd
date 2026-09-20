@@ -24,13 +24,15 @@ func _ready() -> void:
 	overlay.add_child(_marker)
 
 func get_target() -> Node3D:
-	if target != null and (not _alive(target) or player.get("is_dead") == true or player.global_position.distance_to(target.global_position) > release_distance):
+	if not is_instance_valid(target):
+		clear()
+		return null
+	if not _alive(target) or player.get("is_dead") == true or player.global_position.distance_to(target.global_position) > release_distance:
 		clear()
 	return target
 
 func clear() -> void:
 	target = null
-	_facing_held = false
 	if is_instance_valid(_marker):
 		_marker.visible = false
 
@@ -150,10 +152,7 @@ func get_facing_direction() -> Vector3:
 	if not Input.is_action_pressed("hold_target_facing") or _facing_input_blocked():
 		_facing_held = false
 		return Vector3.ZERO
-	var current := target
-	if current != null and not _alive(current):
-		clear()
-		current = null
+	var current := get_target()
 	if current == null:
 		return _direction_to_mouse(get_viewport().get_mouse_position())
 	var direction := current.global_position - player.global_position

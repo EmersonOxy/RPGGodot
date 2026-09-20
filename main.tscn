@@ -21,6 +21,10 @@
 [ext_resource type="Script" uid="uid://bb8xwxnultnfs" path="res://player_audio.gd" id="16_audio"]
 [ext_resource type="Script" uid="uid://c4fg3daut5gxi" path="res://loot_notification.gd" id="17_lootnotif"]
 [ext_resource type="Script" uid="uid://bfyi1tqroaj8g" path="res://loot_label_manager.gd" id="18_lblmgr"]
+[ext_resource type="PackedScene" path="res://enemies/enemy_heavy.tscn" id="19_heavy"]
+[ext_resource type="PackedScene" path="res://enemies/enemy_agile.tscn" id="20_agile"]
+[ext_resource type="Script" uid="uid://2unf1goi73e4" path="res://spawn_region_3d.gd" id="21_spawn_region"]
+[ext_resource type="Script" uid="uid://cls60anxamfta" path="res://enemy_spawn_manager.gd" id="22_spawn_manager"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -944,14 +948,33 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.907509, 0, -2.0204048)
 [node name="GroundDummy" parent="Enemies" unique_id=1001 instance=ExtResource("5_enemy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.371882, 1.6200464, 14.38255)
 
-[node name="GroundDummy2" parent="Enemies" unique_id=1002 instance=ExtResource("5_enemy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5355043, 3.465652, -21.377651)
+[node name="HeavyDummy" parent="Enemies" unique_id=1002 instance=ExtResource("19_heavy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.034338, 0.040138245, -10.574626)
 
-[node name="SouthDummy" parent="Enemies" unique_id=1006 instance=ExtResource("5_enemy")]
+[node name="AgileDummy" parent="Enemies" unique_id=1006 instance=ExtResource("20_agile")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5490417, 0, 5.7412415)
 
 [node name="DeckDummy" parent="Enemies" unique_id=1007 instance=ExtResource("5_enemy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.3093653, 0.06244099, 9.816259)
+
+[node name="EnemySpawnManager" type="Node3D" parent="." unique_id=716742938]
+script = ExtResource("22_spawn_manager")
+
+[node name="SpawnRegions" type="Node3D" parent="." unique_id=752386800]
+
+[node name="WestGround" type="Node3D" parent="SpawnRegions" unique_id=1002906556 groups=["enemy_spawn_regions"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 1, 2)
+script = ExtResource("21_spawn_region")
+size = Vector3(16, 4, 20)
+max_alive = 2
+enemy_scenes = Array[PackedScene]([ExtResource("5_enemy"), ExtResource("20_agile")])
+
+[node name="NorthGround" type="Node3D" parent="SpawnRegions" unique_id=496172937 groups=["enemy_spawn_regions"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, -16)
+script = ExtResource("21_spawn_region")
+size = Vector3(20, 4, 14)
+max_alive = 2
+enemy_scenes = Array[PackedScene]([ExtResource("5_enemy"), ExtResource("19_heavy"), ExtResource("20_agile")])
 
 [node name="OcclusionFade" type="Node3D" parent="." unique_id=1794654324]
 script = ExtResource("6_fade")
@@ -962,6 +985,11 @@ collision_layer = 4
 collision_mask = 3
 floor_snap_length = 0.35
 script = ExtResource("2_player")
+stamina_maxima = 201.0
+regeneracao_por_segundo = 25.5
+percentual_para_retomar_corrida = 0.3
+atacar_em_area = true
+vida_maxima_base = 200
 
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="Player" unique_id=307086507]
 path_desired_distance = 0.25

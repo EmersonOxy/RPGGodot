@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3 uid="uid://dqahdsedyp828"]
+
+[ext_resource type="Script" uid="uid://b7enemyarc01" path="res://enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+nome = "Pesado"
+vida_maxima = 240
+dano = 24
+alcance_de_ataque = 1.8
+intervalo_de_ataque = 2.6
+antecipacao_do_ataque = 0.75
+recuperacao_do_ataque = 1.0
+distancia_de_deteccao = 9.0
+velocidade_de_movimento = 1.5
+cor_do_corpo = Color(0.28, 0.22, 0.42, 1)
+escala_visual = 1.2

@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="EnemyArchetype" format=3 uid="uid://dqmitxo683hyo"]
+
+[ext_resource type="Script" uid="uid://b7enemyarc01" path="res://enemy_archetype.gd" id="1"]
+
+[resource]
+script = ExtResource("1")

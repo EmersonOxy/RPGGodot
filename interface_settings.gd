@@ -9,6 +9,7 @@ var _hud_option: CheckButton
 var _cursor_size_slider: HSlider
 var _movement_option: OptionButton
 var _lock_camera_option: OptionButton
+var _difficulty_option: OptionButton
 
 func _ready() -> void:
 	settings = get_node("/root/DisplaySettings")
@@ -21,6 +22,16 @@ func _ready() -> void:
 	settings.interface_settings_applied.connect(_sync)
 
 func _build_extra_controls() -> void:
+	var difficulty_label := Label.new()
+	difficulty_label.text = "Dificuldade"
+	$Grid.add_child(difficulty_label)
+	_difficulty_option = OptionButton.new()
+	_difficulty_option.name = "Difficulty"
+	var difficulty := get_node("/root/Difficulty")
+	for id in difficulty.ORDER:
+		_difficulty_option.add_item(difficulty.get_label(id))
+	$Grid.add_child(_difficulty_option)
+	_difficulty_option.item_selected.connect(_on_difficulty_selected)
 	var movement_label := Label.new()
 	movement_label.text = "Movimentação"
 	$Grid.add_child(movement_label)
@@ -63,6 +74,9 @@ func _build_extra_controls() -> void:
 	_cursor_size_slider.drag_ended.connect(_on_cursor_size_drag_ended)
 
 func _sync() -> void:
+	if _difficulty_option:
+		var difficulty := get_node("/root/Difficulty")
+		_difficulty_option.select(difficulty.ORDER.find(difficulty.current))
 	if _lock_camera_option:
 		_lock_camera_option.select(1 if settings.lock_camera_follow else 0)
 	if _movement_option:
@@ -76,6 +90,13 @@ func _sync() -> void:
 
 func _on_cursor_selected(index: int) -> void:
 	_save(CURSORS.STYLES[index].id, settings.show_controls, settings.hud_visible, settings.cursor_size)
+
+
+func _on_difficulty_selected(index: int) -> void:
+	var difficulty := get_node("/root/Difficulty")
+	var error: Error = difficulty.set_difficulty(difficulty.ORDER[index])
+	status.text = "Dificuldade: aplicada e salva." if error == OK else "Não foi possível salvar a dificuldade (%d)." % error
+	_sync()
 
 func _on_movement_selected(index: int) -> void:
 	var error: Error = settings.apply_movement_mode(settings.MOVEMENT_MODES[index])

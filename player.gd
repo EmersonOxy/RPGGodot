@@ -13,13 +13,116 @@ signal manual_attack_requested(world_point: Vector3)
 signal took_hit
 signal stamina_changed(current: float, maximum: float)
 
-@export_group("Stamina")
-@export_range(1.0, 500.0) var max_stamina: float = 100.0
-@export_range(0.1, 100.0) var stamina_drain: float = 22.0
-@export_range(0.1, 100.0) var stamina_regen: float = 28.0
-@export_range(0.0, 5.0) var stamina_regen_delay: float = 1.0
-@export_range(0.05, 1.0) var stamina_restart_ratio: float = 0.2
-@export_group("")
+@export_category("PLAYER")
+
+@export_group("MOVIMENTO")
+## Velocidade base compartilhada por clique e WASD, antes dos multiplicadores.
+@export_range(0.0, 20.0, 0.1, "or_greater", "suffix:m/s") var velocidade_de_movimento: float = 4.0
+## Multiplica a velocidade enquanto corre e possui stamina.
+@export_range(0.0, 5.0, 0.05, "or_greater") var multiplicador_de_corrida: float = 1.5
+## Multiplicador aplicado com a arma em mãos.
+@export_range(0.0, 5.0, 0.05, "or_greater") var multiplicador_com_arma: float = 0.80
+## Escala global do deslocamento. Mantém a calibração atual das animações; velocidade final = base × escala × arma × corrida.
+@export_range(0.01, 3.0, 0.01, "or_greater") var escala_de_movimento: float = 0.68
+## Aceleração vertical aplicada quando o personagem está fora do chão.
+@export_range(0.0, 100.0, 0.1, "or_greater", "suffix:m/s²") var gravidade: float = 20.0
+
+@export_group("STAMINA")
+## Capacidade máxima. Aumentar não repõe stamina; diminuir limita o valor atual ao novo máximo.
+@export_range(1.0, 500.0, 1.0, "or_greater") var stamina_maxima: float = 100.0:
+	set(value):
+		stamina_maxima = maxf(1.0, value)
+		if is_node_ready():
+			stamina = minf(stamina, stamina_maxima)
+			if stamina >= stamina_maxima * percentual_para_retomar_corrida:
+				_stamina_exhausted = false
+			stamina_changed.emit(stamina, stamina_maxima)
+## Stamina consumida por segundo de corrida com deslocamento.
+@export_range(0.0, 100.0, 0.1, "or_greater") var consumo_por_segundo: float = 22.0
+## Stamina recuperada por segundo após o atraso.
+@export_range(0.0, 100.0, 0.1, "or_greater") var regeneracao_por_segundo: float = 28.0
+## Atraso após consumir stamina. Alterações valem para o próximo consumo.
+@export_range(0.0, 10.0, 0.05, "or_greater", "suffix:s") var atraso_para_regenerar: float = 1.0
+## Fração da stamina máxima necessária após exaustão: 0,2 corresponde a 20%.
+@export_range(0.0, 1.0, 0.01) var percentual_para_retomar_corrida: float = 0.2
+
+@export_group("COMBATE")
+## Ativado: cada golpe atinge todos os inimigos no cone frontal de 120 graus, com dano integral por alvo. Respeita alcance, altura e obstáculos. Desativado: mantém um alvo por golpe. Vale para socos, arma e ataques automáticos/manuais; pode mudar pelo Remote.
+@export var atacar_em_area: bool = false
+## Dano armado base, somado aos bônus de equipamento. Atualiza os atributos imediatamente.
+@export_range(0, 1000, 1, "or_greater") var dano_base: int = 20:
+	set(value):
+		dano_base = maxi(0, value)
+		if is_node_ready() and is_instance_valid(equipment):
+			recalculate_stats()
+## Dano dos socos; não recebe o bônus de dano da arma.
+@export_range(0, 1000, 1, "or_greater") var dano_desarmado: int = 5
+## Distância máxima conferida na aproximação e novamente no impacto; obstáculos continuam bloqueando.
+@export_range(0.1, 10.0, 0.05, "or_greater", "suffix:m") var alcance_de_ataque: float = 1.5
+## Intervalo mínimo de novos golpes armados. Também aguarda o fim da animação; não reinicia o cooldown atual.
+@export_range(0.01, 10.0, 0.01, "or_greater", "suffix:s") var intervalo_armado: float = 1.0
+## Intervalo mínimo entre socos; também respeita a animação em andamento.
+@export_range(0.01, 10.0, 0.01, "or_greater", "suffix:s") var intervalo_desarmado: float = 0.65
+## Tempo pelo qual um pedido de ataque aguarda disponibilidade. Usado no próximo pedido.
+@export_range(0.0, 2.0, 0.01, "or_greater", "suffix:s") var buffer_de_ataque_manual: float = 0.25
+## Pausa mínima do movimento ao receber dano; a animação de reação também pode manter a trava.
+@export_range(0.0, 5.0, 0.01, "or_greater", "suffix:s") var trava_de_movimento_ao_receber_golpe: float = 0.18
+## Tempo mínimo para voltar a atacar após iniciar a reação ao dano.
+@export_range(0.0, 5.0, 0.01, "or_greater", "suffix:s") var trava_de_ataque_ao_receber_golpe: float = 0.12
+
+@export_group("ATRIBUTOS BASE")
+## Vida máxima antes dos equipamentos. Aumentar não cura; diminuir limita a vida atual.
+@export_range(1, 10000, 1, "or_greater") var vida_maxima_base: int = 100:
+	set(value):
+		vida_maxima_base = maxi(1, value)
+		if is_node_ready() and is_instance_valid(equipment):
+			recalculate_stats()
+## Armadura base somada aos equipamentos; preserva as regras atuais de aplicação de dano.
+@export_range(0, 1000, 1, "or_greater") var armadura_base: int = 0:
+	set(value):
+		armadura_base = maxi(0, value)
+		if is_node_ready() and is_instance_valid(equipment):
+			recalculate_stats()
+## Força base antes dos bônus de equipamento.
+@export_range(0, 1000, 1, "or_greater") var forca_base: int = 10:
+	set(value):
+		forca_base = maxi(0, value)
+		if is_node_ready() and is_instance_valid(equipment):
+			recalculate_stats()
+## Destreza base antes dos bônus de equipamento.
+@export_range(0, 1000, 1, "or_greater") var destreza_base: int = 10:
+	set(value):
+		destreza_base = maxi(0, value)
+		if is_node_ready() and is_instance_valid(equipment):
+			recalculate_stats()
+## Inteligência base antes dos bônus de equipamento.
+@export_range(0, 1000, 1, "or_greater") var inteligencia_base: int = 10:
+	set(value):
+		inteligencia_base = maxi(0, value)
+		if is_node_ready() and is_instance_valid(equipment):
+			recalculate_stats()
+
+@export_group("COLETA")
+## Distância máxima para coletar loot, tanto por clique quanto por aproximação.
+@export_range(0.0, 20.0, 0.05, "or_greater", "suffix:m") var alcance_de_coleta: float = 1.75
+
+# Compatibilidade de leitura para consumidores existentes; sem armazenamento duplicado.
+var max_stamina: float:
+	get:
+		return stamina_maxima
+var base_attack_damage: int:
+	get:
+		return dano_base
+var attack_range: float:
+	get:
+		return alcance_de_ataque
+var MOVEMENT_SPEED_SCALE: float:
+	get:
+		return escala_de_movimento
+var HIT_ATTACK_LOCK: float:
+	get:
+		return trava_de_ataque_ao_receber_golpe
+
 var stamina: float = 100.0
 var is_running := false
 var _stamina_delay := 0.0
@@ -29,25 +132,8 @@ var weapon_drawn: bool:
 	get:
 		var visual := get_node_or_null("Visual")
 		return visual != null and visual.is_weapon_in_hand()
-var unarmed_damage: int = 5
 const ATTACK_DAMAGE: int = 20
-const ATTACK_INTERVAL: float = 1.0
-const UNARMED_ATTACK_INTERVAL: float = 0.65
-const HIT_ATTACK_LOCK: float = 0.12
-const MANUAL_ATTACK_BUFFER: float = 0.25
-const MOVEMENT_SPEED_SCALE: float = 0.68
-const ARMED_MOVEMENT_SCALE: float = 0.80
 
-@export var speed: float = 4.0
-@export var gravity: float = 20.0
-@export_range(0.8, 10.0) var attack_range: float = 1.5
-@export_range(0.0, 1.0) var hit_move_lock: float = 0.18
-@export var base_max_health: int = 100
-@export var base_attack_damage: int = ATTACK_DAMAGE
-@export var base_armor: int = 0
-@export var base_strength: int = 10
-@export var base_dexterity: int = 10
-@export var base_intelligence: int = 10
 var max_health: int = 100
 var attack_damage: int = ATTACK_DAMAGE
 var armor: int = 0
@@ -57,7 +143,6 @@ var intelligence: int = 10
 var equipment_bonuses: Dictionary = {}
 var equipment: Node
 var action_bar: Node
-@export var manual_move_speed: float = 4.0
 @onready var navigation_agent: NavigationAgent3D = $NavigationAgent3D
 @onready var inventory: Node = $Inventory
 var health: int = 100
@@ -73,10 +158,7 @@ var hit_move_lock_timer: float = 0.0
 var _buffered_attack_point: Variant = null
 var _manual_attack_buffer_timer: float = 0.0
 var hit_recovery_timer: float = 0.0
-var run_multiplier: float = 1.5
 var collect_target: Node3D = null
-@export var pickup_range: float = 1.75
-var COLLECT_RANGE: float = 1.75
 var level: int = 1
 var xp: int = 0
 var max_xp: int = 100
@@ -89,7 +171,7 @@ var move_direction: Vector3 = Vector3.ZERO
 
 
 func _ready() -> void:
-	stamina = max_stamina
+	stamina = stamina_maxima
 	add_to_group("player")
 	equipment = preload("res://equipment.gd").new()
 	equipment.name = "Equipment"
@@ -160,12 +242,12 @@ func _notification(what: int) -> void:
 func recalculate_stats() -> void:
 	equipment_bonuses = equipment.get_bonuses()
 		
-	attack_damage = maxi(0, base_attack_damage + equipment_bonuses.attack_damage)
-	armor = maxi(0, base_armor + equipment_bonuses.armor)
-	strength = base_strength + equipment_bonuses.strength
-	dexterity = base_dexterity + equipment_bonuses.dexterity
-	intelligence = base_intelligence + equipment_bonuses.intelligence
-	max_health = maxi(1, base_max_health + equipment_bonuses.max_health)
+	attack_damage = maxi(0, dano_base + equipment_bonuses.attack_damage)
+	armor = maxi(0, armadura_base + equipment_bonuses.armor)
+	strength = forca_base + equipment_bonuses.strength
+	dexterity = destreza_base + equipment_bonuses.dexterity
+	intelligence = inteligencia_base + equipment_bonuses.intelligence
+	max_health = maxi(1, vida_maxima_base + equipment_bonuses.max_health)
 	health = mini(health, max_health)
 	stats_changed.emit()
 	health_changed.emit(health, max_health)
@@ -216,7 +298,7 @@ func approach_loot(loot: Node3D) -> void:
 	if is_dead or not is_instance_valid(loot):
 		return
 	var dist := global_position.distance_to(loot.global_position)
-	if dist <= pickup_range:
+	if dist <= alcance_de_coleta:
 		if loot.has_method("try_pickup"):
 			if loot.try_pickup(inventory):
 				_set_collect_target(null)
@@ -259,7 +341,7 @@ func _enter_manual_mode() -> void:
 
 
 func get_movement_speed_multiplier() -> float:
-	return MOVEMENT_SPEED_SCALE * (ARMED_MOVEMENT_SCALE if weapon_drawn else 1.0)
+	return escala_de_movimento * (multiplicador_com_arma if weapon_drawn else 1.0)
 
 
 func _manual_move(manual_input: Vector2) -> void:
@@ -278,7 +360,7 @@ func _manual_move(manual_input: Vector2) -> void:
 		direction = direction.normalized()
 		
 	var running := _can_run()
-	var current_speed = manual_move_speed * get_movement_speed_multiplier() * (run_multiplier if running else 1.0)
+	var current_speed = velocidade_de_movimento * get_movement_speed_multiplier() * (multiplicador_de_corrida if running else 1.0)
 	
 	velocity.x = direction.x * current_speed
 	velocity.z = direction.z * current_speed
@@ -304,19 +386,19 @@ func _update_stamina(delta: float, moving_on_ground: bool) -> void:
 	var previous := stamina
 	is_running = moving_on_ground and _can_run()
 	if is_running:
-		stamina = maxf(0.0, stamina - stamina_drain * delta)
-		_stamina_delay = stamina_regen_delay
+		stamina = maxf(0.0, stamina - consumo_por_segundo * delta)
+		_stamina_delay = atraso_para_regenerar
 		if stamina <= 0.0:
 			_stamina_exhausted = true
 			is_running = false
 	else:
 		var waiting := minf(_stamina_delay, delta)
 		_stamina_delay = maxf(0.0, _stamina_delay - delta)
-		stamina = minf(max_stamina, stamina + stamina_regen * (delta - waiting))
-		if stamina >= max_stamina * stamina_restart_ratio:
+		stamina = minf(stamina_maxima, stamina + regeneracao_por_segundo * (delta - waiting))
+		if stamina >= stamina_maxima * percentual_para_retomar_corrida:
 			_stamina_exhausted = false
 	if not is_equal_approx(previous, stamina):
-		stamina_changed.emit(stamina, max_stamina)
+		stamina_changed.emit(stamina, stamina_maxima)
 
 
 func is_in_attack_range() -> bool:
@@ -325,7 +407,7 @@ func is_in_attack_range() -> bool:
 	if not is_instance_valid(approach_target):
 		return false
 	var difference := approach_target.global_position - global_position
-	if difference.length() > attack_range or absf(difference.y) > 0.35:
+	if difference.length() > alcance_de_ataque or absf(difference.y) > 0.35:
 		return false
 	var origin := global_position + Vector3.UP * 0.9
 	var end := approach_target.global_position + Vector3.UP * 0.9
@@ -338,7 +420,7 @@ func _try_collect() -> void:
 		_set_collect_target(null)
 		return
 	var dist := global_position.distance_to(collect_target.global_position)
-	if dist <= pickup_range:
+	if dist <= alcance_de_coleta:
 		var loot := collect_target as StaticBody3D
 		if loot and loot.has_method("try_pickup"):
 			if loot.try_pickup(inventory):
@@ -358,7 +440,7 @@ func _physics_process(delta: float) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	if not is_on_floor():
-		velocity.y -= gravity * delta
+		velocity.y -= gravidade * delta
 	else:
 		velocity.y = 0.0
 
@@ -395,7 +477,7 @@ func _physics_process(delta: float) -> void:
 			if held_point is Vector3:
 				_try_start_manual_attack(held_point)
 
-	# Keep gravity, but defer movement commands until the attack or hit clip finishes.
+	# Keep gravidade, but defer movement commands until the attack or hit clip finishes.
 	if $Visual.is_attack_movement_locked() or $Visual.is_hit_movement_locked():
 		move_and_slide()
 		_update_anim_state()
@@ -424,7 +506,7 @@ func _physics_process(delta: float) -> void:
 		move_mode = MoveMode.CLICK_MOVE
 		if allows_mouse_movement() and map_ready and not is_in_attack_range() and not navigation_agent.is_navigation_finished():
 			var running := _can_run()
-			var current_speed = speed * get_movement_speed_multiplier() * (run_multiplier if running else 1.0)
+			var current_speed = velocidade_de_movimento * get_movement_speed_multiplier() * (multiplicador_de_corrida if running else 1.0)
 			
 			var next_point := navigation_agent.get_next_path_position()
 			var direction := next_point - global_position
@@ -449,7 +531,7 @@ func _physics_process(delta: float) -> void:
 	_update_stamina(delta, is_on_floor() and Vector2(actual_velocity.x, actual_velocity.z).length() > 0.1)
 
 	if _buffered_attack_point == null and is_in_attack_range() and approach_target.is_selected and attack_cooldown <= 0.0 and $Visual.can_start_manual_attack():
-		attack_cooldown = ATTACK_INTERVAL if weapon_drawn else UNARMED_ATTACK_INTERVAL
+		attack_cooldown = intervalo_armado if weapon_drawn else intervalo_desarmado
 		attack_hit_resolved = false
 		attack_executed.emit(approach_target, attack_cooldown)
 
@@ -461,7 +543,7 @@ func take_damage(amount: int, damage_type: int = COMBAT_TEXT.DamageType.PLAYER_D
 	if is_dead or health <= 0 or amount <= 0 or hit_recovery_timer > 0.0:
 		return
 	hit_recovery_timer = 0.25
-	hit_move_lock_timer = hit_move_lock
+	hit_move_lock_timer = trava_de_movimento_ao_receber_golpe
 	COMBAT_TEXT.show_damage_number(self, global_position + Vector3.UP * 1.6, mini(amount, health), damage_type, is_critical)
 	health = maxi(0, health - amount)
 	if health > 0:
@@ -481,6 +563,21 @@ func _on_attack_impact(target: Node3D = null, manual_direction: Vector3 = Vector
 	if is_dead or attack_hit_resolved:
 		return
 	attack_hit_resolved = true
+	if atacar_em_area:
+		var direction := manual_direction
+		if direction.is_zero_approx():
+			direction = $Visual.global_basis.z
+		direction.y = 0.0
+		direction = direction.normalized()
+		var targets: Array[Node3D] = []
+		for candidate in get_tree().get_nodes_in_group("enemies"):
+			if candidate is Node3D and _can_hit_manually(candidate, direction):
+				targets.append(candidate)
+		# A lista é capturada antes de dano/morte alterarem a seleção ou a árvore.
+		for candidate in targets:
+			if is_instance_valid(candidate) and not candidate.is_queued_for_deletion():
+				_apply_attack_damage(candidate)
+		return
 	
 	if not manual_direction.is_zero_approx():
 		target = _find_manual_attack_target(manual_direction)
@@ -488,15 +585,18 @@ func _on_attack_impact(target: Node3D = null, manual_direction: Vector3 = Vector
 		target = approach_target
 	if not is_instance_valid(target):
 		return
-		
+	_apply_attack_damage(target)
+
+
+func _apply_attack_damage(target: Node3D) -> void:
 	var difference := target.global_position - global_position
-	if difference.length() > attack_range or absf(difference.y) > 0.35 or target.health <= 0:
+	if difference.length() > alcance_de_ataque or absf(difference.y) > 0.35 or target.health <= 0:
 		return
 	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.9, target.global_position + Vector3.UP * 0.9, 3)
 	if not get_world_3d().direct_space_state.intersect_ray(query).is_empty():
 		return
 		
-	var final_damage = attack_damage if weapon_drawn else unarmed_damage
+	var final_damage = attack_damage if weapon_drawn else dano_desarmado
 	var armed := weapon_drawn
 	var hit_position := target.global_position + Vector3.UP * 1.0 - difference.normalized() * 0.3
 	var hp_before: int = target.health
@@ -519,7 +619,7 @@ func request_manual_attack(world_point: Vector3) -> bool:
 		return false
 	# One slot: a newer click replaces the aim and expiry, never adds a queued attack.
 	_buffered_attack_point = world_point
-	_manual_attack_buffer_timer = MANUAL_ATTACK_BUFFER
+	_manual_attack_buffer_timer = buffer_de_ataque_manual
 	return _try_start_manual_attack(world_point)
 
 
@@ -528,7 +628,7 @@ func _try_start_manual_attack(world_point: Vector3) -> bool:
 		return false
 	_buffered_attack_point = null
 	_manual_attack_buffer_timer = 0.0
-	attack_cooldown = ATTACK_INTERVAL if weapon_drawn else UNARMED_ATTACK_INTERVAL
+	attack_cooldown = intervalo_armado if weapon_drawn else intervalo_desarmado
 	attack_hit_resolved = false
 	var locked := get_locked_target()
 	if locked != null:
@@ -574,17 +674,18 @@ func _find_manual_attack_target(direction: Vector3) -> Node3D:
 
 func get_locked_target() -> Node3D:
 	var component := get_node_or_null("TargetLock")
-	return component.get_target() if component != null else null
+	var locked: Node3D = component.get_target() if component != null else null
+	return locked if is_instance_valid(locked) else null
 
 
 func _can_hit_manually(target: Node3D, direction: Vector3) -> bool:
 	if not is_instance_valid(target) or not target.is_in_group("enemies") or not target.has_method("take_damage") or target.get("health") == null or target.health <= 0:
 		return false
 	var difference := target.global_position - global_position
-	if difference.length() > attack_range or absf(difference.y) > 0.35:
+	if difference.length() > alcance_de_ataque or absf(difference.y) > 0.35:
 		return false
 	difference.y = 0.0
-	# A simple frontal cone; one target per impact. No weapon hitbox system.
+	# Cone frontal compartilhado pela seleção individual e pelo ataque em área.
 	if not difference.is_zero_approx() and difference.normalized().dot(direction) < 0.5:
 		return false
 	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.9, target.global_position + Vector3.UP * 0.9, 3)

@@ -2,6 +2,8 @@
 
 Documento consolidado em 19/09/2026. Deve ser atualizado conforme as tarefas forem implementadas ou as decisões de design mudarem.
 
+Convenção obrigatória para sistemas atuais e futuros: [CONVENCOES.md](CONVENCOES.md). O Inspector deve apresentar parâmetros de design selecionados, em português e agrupados, preservando estados internos e valores existentes. Revisão estrutural: blocos 0 (convenções), 1 (Player) e 2 (inimigos) implementados. Arquétipos migrados preservando valores e atualizados por sinais no Remote; teste breve sem falhas. Próximo bloco: spawner, aguardando aprovação específica.
+
 ## Status atualizado — Fases 1 a 3 encerradas
 
 Fases 1, 2 e 3 entregues e confirmadas pelo usuário. As notas antigas de "fase atual" abaixo são históricas.
@@ -241,23 +243,23 @@ O lock-on deve ser implementado incrementalmente. A primeira entrega conterá ap
 
 ### Fase 4 — Estrutura do jogo, inimigos e dificuldade
 
-1. Criar uma classe ou componente base de inimigo.
-2. Criar pelo menos três arquétipos:
+- [x] 1. Criar uma classe ou componente base de inimigo.
+- [x] 2. Criar pelo menos três arquétipos:
    - Corpo a corpo padrão.
    - Pesado, lento e resistente, com ataque antecipado.
    - Ágil, mais rápido e frágil.
-3. Criar blocos ou volumes invisíveis configuráveis que definam posição e tamanho de regiões de spawn.
-4. Criar um gerenciador de spawn que respeite limites, distância do Player e espaço navegável.
-5. Adicionar o sistema de dificuldade.
-6. Centralizar na dificuldade os multiplicadores e limites de:
+- [x] 3. Criar blocos ou volumes invisíveis configuráveis que definam posição e tamanho de regiões de spawn.
+- [x] 4. Criar um gerenciador de spawn que respeite limites, distância do Player e espaço navegável.
+- [x] 5. Adicionar o sistema de dificuldade.
+- [x] 6. Centralizar na dificuldade os multiplicadores e limites de:
    - Vida e dano dos inimigos.
    - Quantidade simultânea de inimigos.
    - Frequência de spawn.
    - Percepção e agressividade.
    - Qualidade ou quantidade de loot, se desejado.
-7. Adicionar a opção de dificuldade à interface e persistir a escolha.
-8. Criar objetivo simples, inimigo elite, recompensa e condição de vitória.
-9. Implementar save/load para:
+- [x] 7. Adicionar a opção de dificuldade à interface e persistir a escolha.
+- [ ] 8. Criar objetivo simples, inimigo elite, recompensa e condição de vitória.
+- [ ] 9. Implementar save/load para:
    - Posição, vida, nível e XP.
    - Inventário e quantidades.
    - Equipamentos e barra de ações.
@@ -341,7 +343,7 @@ Outras refatorações:
 
 ## Próxima tarefa
 
-Atual: Fase 3 encerrada com a aprovação do usuário (remapeamento de atalhos, câmera com acompanhamento do cursor, `vertical_bias` e Alt mirando no cursor sem alvo). Próximo passo: Fase 4 — estrutura do jogo, inimigos e dificuldade, começando pela base de inimigos e os três arquétipos. O restante desta seção registra entregas anteriores.
+Atual: Fase 3 encerrada com a aprovação do usuário. Fase 4 em andamento, itens 1 a 7 implementados. `enemy_base.gd` extrai a lógica comum; `enemy_archetype.gd` define os perfis padrão, pesado e ágil. `spawn_region_3d.gd` define volumes invisíveis configuráveis por posição, tamanho, limite, peso e cenas permitidas. `enemy_spawn_manager.gd` controla intervalo e população global, respeita limite local, distância do Player, NavigationMap e espaço físico livre. Duas regiões iniciais foram adicionadas ao mapa. `difficulty_manager.gd` centraliza os perfis Fácil, Normal e Difícil, aplicando vida, dano, velocidade, percepção, população e intervalo de spawn; a opção foi adicionada à interface e persiste em `settings.cfg`. Mudanças durante a partida atualizam inimigos existentes preservando a proporção de vida. Carregamento no Godot 4.7.2 aprovado; testes focados retornaram `ARCHETYPES: 0 failures`, `SPAWN_MANAGER: 0 failures` e `DIFFICULTY: 0 failures`. Próxima entrega: objetivo simples, inimigo elite, recompensa e condição de vitória. O restante desta seção registra entregas anteriores.
 
 Ataque manual contínuo: segurar `manual_attack` (botão direito atual) repete golpes respeitando cooldown e fim da animação, mirando a posição atual do mouse a cada novo golpe. Soltar termina apenas o golpe em andamento e limpa ataques pendentes. Clique rápido continua dando um golpe. Iniciar ataque manual cancela aproximação/ataque automático; pausa, perda de foco, morte, arraste e passagem sobre UI interrompem a repetição, exigindo novo pressionamento.
 
