@@ -24,14 +24,19 @@ func run() -> void:
 	root.add_child(scene)
 	await physics_frame
 	var heavy: Node = scene.get_node("Enemies/HeavyDummy")
-	var manager: EnemySpawnManager = scene.get_node("EnemySpawnManager")
+	var west: SpawnRegion3D = scene.get_node("SpawnRegions/WestGround")
+	var north: SpawnRegion3D = scene.get_node("SpawnRegions/NorthGround")
 	check(heavy.max_health == 324 and heavy.attack_damage == 31, "Hard scales enemy health and damage")
 	check(is_equal_approx(heavy.move_speed, 1.65) and is_equal_approx(heavy.aggro_range, 10.8), "Hard scales speed and perception")
-	check(manager.global_max_alive == 9 and is_equal_approx(manager.spawn_interval, 6.0), "Hard scales spawn limit and interval")
+	check(west._maximo_efetivo == 13 and is_equal_approx(west._intervalo_efetivo, 6.0), "Hard scales west spawn limit and interval")
+	north.intervalo_de_spawn = 15.0
+	check(is_equal_approx(north._intervalo_efetivo, 11.25), "North keeps its own base under hard")
+	check(is_equal_approx(west._intervalo_efetivo, 6.0), "Changing North does not change West")
 	var previous_health: int = heavy.health
 	check(difficulty.set_difficulty("easy", TEST_PATH) == OK, "Easy difficulty applies live")
 	check(heavy.max_health == 180 and heavy.health < previous_health, "Live change preserves enemy health ratio")
-	check(manager.global_max_alive == 5 and is_equal_approx(manager.spawn_interval, 10.0), "Easy updates spawn settings live")
+	check(west._maximo_efetivo == 8 and is_equal_approx(west._intervalo_efetivo, 10.0), "Easy updates west spawn settings live")
+	check(is_equal_approx(north._intervalo_efetivo, 18.75), "Easy keeps north base independent")
 	difficulty.set_difficulty("normal", TEST_PATH)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_PATH))
 	print("DIFFICULTY: ", failures, " failures")

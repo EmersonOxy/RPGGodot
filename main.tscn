@@ -24,7 +24,10 @@
 [ext_resource type="PackedScene" path="res://enemies/enemy_heavy.tscn" id="19_heavy"]
 [ext_resource type="PackedScene" path="res://enemies/enemy_agile.tscn" id="20_agile"]
 [ext_resource type="Script" uid="uid://2unf1goi73e4" path="res://spawn_region_3d.gd" id="21_spawn_region"]
-[ext_resource type="Script" uid="uid://cls60anxamfta" path="res://enemy_spawn_manager.gd" id="22_spawn_manager"]
+[ext_resource type="Script" uid="uid://dh04uh37xrmv8" path="res://entrada_de_spawn_de_inimigo.gd" id="23_entrada"]
+[ext_resource type="Resource" path="res://enemies/entrada_padrao.tres" id="30_e_padrao"]
+[ext_resource type="Resource" path="res://enemies/entrada_pesado.tres" id="31_e_pesado"]
+[ext_resource type="Resource" path="res://enemies/entrada_agil.tres" id="32_e_agil"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -957,24 +960,23 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.5490417, 0, 5.7412415)
 [node name="DeckDummy" parent="Enemies" unique_id=1007 instance=ExtResource("5_enemy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.3093653, 0.06244099, 9.816259)
 
-[node name="EnemySpawnManager" type="Node3D" parent="." unique_id=716742938]
-script = ExtResource("22_spawn_manager")
-
 [node name="SpawnRegions" type="Node3D" parent="." unique_id=752386800]
 
-[node name="WestGround" type="Node3D" parent="SpawnRegions" unique_id=1002906556 groups=["enemy_spawn_regions"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13, 1, 2)
+[node name="WestGround" type="Node3D" parent="SpawnRegions" unique_id=1002906556]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.1603616, -3.6769104, 1, 11.774818)
 script = ExtResource("21_spawn_region")
-size = Vector3(16, 4, 20)
-max_alive = 2
-enemy_scenes = Array[PackedScene]([ExtResource("5_enemy"), ExtResource("20_agile")])
+tamanho_da_regiao = Vector3(16, 4, 20)
+maximo_de_inimigos = 10
+intervalo_de_spawn = 1.9000000000000001
+atraso_inicial = 0.0
+inimigos = Array[ExtResource("23_entrada")]([ExtResource("30_e_padrao"), ExtResource("32_e_agil")])
 
-[node name="NorthGround" type="Node3D" parent="SpawnRegions" unique_id=496172937 groups=["enemy_spawn_regions"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, -16)
+[node name="NorthGround" type="Node3D" parent="SpawnRegions" unique_id=496172937]
+transform = Transform3D(1.1593796, 0, 0, 0, 1, 0, 0, 0, 1, 1.8306656, 3.3894978, -16)
 script = ExtResource("21_spawn_region")
-size = Vector3(20, 4, 14)
-max_alive = 2
-enemy_scenes = Array[PackedScene]([ExtResource("5_enemy"), ExtResource("19_heavy"), ExtResource("20_agile")])
+tamanho_da_regiao = Vector3(20, 4, 14)
+maximo_de_inimigos = 10
+inimigos = Array[ExtResource("23_entrada")]([ExtResource("30_e_padrao"), ExtResource("31_e_pesado"), ExtResource("32_e_agil")])
 
 [node name="OcclusionFade" type="Node3D" parent="." unique_id=1794654324]
 script = ExtResource("6_fade")

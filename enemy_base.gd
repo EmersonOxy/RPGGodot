@@ -90,6 +90,13 @@ func _ready() -> void:
 		tabela_de_loot = _create_default_drop_table()
 
 
+## Posiciona o inimigo gerado por um spawner e corrige o ponto de origem.
+## Chamado imediatamente após add_child, antes do primeiro frame de física.
+func setup_spawn(spawn_position: Vector3) -> void:
+	global_position = spawn_position
+	home_position = spawn_position
+
+
 func _apply_difficulty(preserve_health_ratio: bool) -> void:
 	var previous_max := max_health
 	var previous_health := health

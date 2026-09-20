@@ -1,5 +1,18 @@
 # Convenções do Inspector
 
+## Registro — Spawn independente, revisão do bloco 3 (20/09/2026)
+
+- Cada `SpawnRegion3D` agora é um spawner autocontido: ciclo próprio, intervalo e atraso próprios, distâncias e posicionamento próprios, composição própria e contador próprio de inimigos vivos. Um spawner não afeta nem lê configuração de outro. `EnemySpawnManager` foi removido junto com o grupo `enemy_spawn_regions`; não existe mais limite global nem seleção ponderada entre regiões.
+- Inspector do spawner: GERAL (ativada, pai_dos_inimigos), REGIÃO (tamanho_da_regiao), POPULAÇÃO (maximo_de_inimigos), TEMPO (intervalo_de_spawn, atraso_inicial), POSICIONAMENTO (distância mínima/máxima, tentativas, tolerância, raio livre), COMPOSIÇÃO (inimigos) e EDITOR (mostrar_regiao, cor_da_regiao). Os valores expostos são as bases; a dificuldade multiplica intervalo e máximo a partir da base de cada spawner, sem copiar valores entre eles. Setters de base reaplicam a dificuldade; edição pelo Remote afeta somente aquele spawner.
+- `EntradaDeSpawnDeInimigo` (Resource) compõe a lista didática: nome (também alimenta resource_name), ativado, cena_do_inimigo e peso relativo. A chance de uma entrada é o peso dividido pela soma dos pesos das entradas ativadas; peso zero ou entrada desativada é ignorada. Entradas ativado/peso podem ser ajustadas pelo Remote.
+- Contagem de população por registro e sinais: dicionário por instance_id alimentado por `tree_exited` e `died`; sem varredura de árvore por frame. Cobre queue_free, morte, remoção externa e troca de cena. Inimigos colocados manualmente não consomem limite de spawner.
+- Correção de inimigos inertes: `_ready()` do inimigo capturava `home_position` antes de o spawner atribuir `global_position`, deixando a origem na posição do nó `Enemies`; o leash calculado contra essa origem mantinha o inimigo em IDLE mesmo com o jogador ao lado. Novo `EnemyBase.setup_spawn(posição)` define posição e origem logo após `add_child`, de forma determinística, antes do primeiro frame de física. Inimigos manuais continuam capturando a origem no `_ready`.
+- Diagnóstico por spawner no Inspector Remote: propriedades somente leitura via `_get_property_list` na categoria DEBUG — Inimigos Vivos ("n / máximo efetivo"), Próximo Spawn (s), Estado e Última Falha. Não são armazenadas nem editáveis; não exigem plugin.
+- Migração da composição: WestGround preservou duas entradas (padrão, ágil) e NorthGround três (padrão, pesado, ágil), cada uma com peso 1.0 e ativada; limites atuais (10/10) e tamanhos preservados. `pai_dos_inimigos` padrão é `../../Enemies`.
+- Testes: `spawn_region_test.gd` (limites independentes, inimigos manuais, liberação de vaga, desativação isolada, composição ponderada/vazia, posição/home corretos e entrada em CHASE) e `difficulty_test.gd` (bases independentes sob hard/easy) — ambos com 0 falhas. `spawn_manager_test.gd` foi substituído.
+
+Volumes/spawners independentes devem possuir configuração e estado próprios; sistemas globais não devem introduzir limites compartilhados sem necessidade explícita de design.
+
 ## Registro — Inimigos, bloco 2 (20/09/2026)
 
 - `EnemyArchetype` é a fonte dos parâmetros do tipo, organizado em IDENTIDADE, COMBATE, PERCEPÇÃO E MOVIMENTO e APARÊNCIA. Propriedades em português, ranges com unidades e tooltips. Setters emitem `changed` para atualizar os consumidores sem polling.

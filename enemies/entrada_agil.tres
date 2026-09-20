@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EntradaDeSpawnDeInimigo" format=3]
+
+[ext_resource type="Script" path="res://entrada_de_spawn_de_inimigo.gd" id="1"]
+[ext_resource type="PackedScene" path="res://enemies/enemy_agile.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+nome = "Ágil"
+ativado = true
+cena_do_inimigo = ExtResource("2")
+peso = 1.0
