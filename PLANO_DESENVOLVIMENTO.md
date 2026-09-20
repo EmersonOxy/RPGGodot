@@ -2,9 +2,9 @@
 
 Documento consolidado em 19/09/2026. Deve ser atualizado conforme as tarefas forem implementadas ou as decisões de design mudarem.
 
-## Status atualizado — Fase 3: controles, alvo e câmera entregues
+## Status atualizado — Fases 1 a 3 encerradas
 
-Fase 1 entregue. Fase 2: todas as entregas implementadas e confirmadas. As notas antigas de "fase atual" abaixo são históricas.
+Fases 1, 2 e 3 entregues e confirmadas pelo usuário. As notas antigas de "fase atual" abaixo são históricas.
 
 ### Fase 2 — entregas concluídas
 
@@ -21,7 +21,7 @@ Limite conhecido: o registro de "novo" usa identidade do recurso; unificar essa 
 
 ### Fase 3 — funcionalidades de gameplay concluídas
 
-As entregas de movimentação, trava e câmera estão implementadas e confirmadas. Ressalva: o remapeamento completo de atalhos (incluindo conflitos, restauração e persistência por modo), previsto no roadmap original, ainda não foi implementado; portanto o escopo original da fase não está 100% encerrado.
+As entregas de movimentação, trava, câmera e remapeamento de atalhos estão implementadas e confirmadas; o escopo original da fase está encerrado.
 
 Ajuste após teste: marcador agora é um ponto 2D branco de raio 5 px com contorno escuro, projetado no centro do corpo (posição da CollisionShape3D; fallback de 0,9 unidade acima da origem) após atualização da câmera, independente de fonte/zoom. Alcance dos dummies reduzido de 2,0 para 1,4, ficando dentro do alcance de 1,5 do Player para permitir revidar. A trava continua sem aumentar alcance nem atravessar obstáculos.
 
@@ -32,9 +32,10 @@ Ajuste após teste: marcador agora é um ponto 2D branco de raio 5 px com contor
 - [x] Troca lateral: Q para esquerda e E para direita na tela. Escolhe o candidato válido mais próximo do alvo atual naquele lado; mantém a trava se não houver candidato. Reutiliza alcance de aquisição, visibilidade e obstáculos. Sem trava, não inicia uma automaticamente. Não altera câmera nem perseguição.
 - [x] Modos Mouse/WASD/Híbrido em Configurações → Interface → Movimentação, aplicados imediatamente e salvos na seção `controls` (`movement_input_mode`). Híbrido é o padrão. Trocar cancela deslocamento/aproximação anteriores, preservando trava e ataques. No modo WASD, cliques selecionam inimigos e coletam loot próximo, sem caminhar automaticamente; no modo Mouse, WASD não movimenta. Dicas acompanham o modo sem apagar atalhos do InputMap.
 - [x] Câmera Livre/Acompanhar alvo em Configurações → Interface, salva como `controls/lock_camera_follow`; acompanhamento ativo por padrão. Na trava, zoom temporário de 13,5% (multiplicador 0,865; respeita mínimo 6) e foco suavizado 40% em direção ao alvo, limitado a 4 unidades ou 20% do span de zoom. Rotação isométrica preservada, offsets somados à composição e ao impacto. Ao destravar, perder alvo ou escolher Livre, retorna suavemente; scroll durante a trava atualiza o zoom-base a restaurar. Troca Q/E também suaviza o foco.
-- [x] Segurar Alt (`hold_target_facing`) mantém o personagem voltado suavemente ao alvo travado, parado ou andando. Soltar retorna à orientação pelo movimento. Sem alvo não faz nada; ataque/reação a dano mantêm prioridade. Pausa, perda de foco, UI de inventário e arraste interrompem a intenção. Não muda velocidade, dano, câmera ou trajetos; animações laterais/de ré específicas ainda não fazem parte desta entrega.
-- [x] Segurar botão do meio e arrastar desloca suavemente a câmera; limite fixo de 4 unidades no plano da câmera, sem ajuste nas configurações. Conversão por zoom/aspect atual. Ao soltar, retorna ao enquadramento do Player ou ao foco do alvo, mantendo zoom e rotação. UI, pausa, perda de foco e morte interrompem o arraste. Não altera movimento do personagem.
-- [ ] Pendência do escopo original: remapeamento completo de atalhos, detecção de conflitos, restauração e salvamento das escolhas.
+- [x] Segurar Alt (`hold_target_facing`) mantém o personagem voltado suavemente ao alvo travado, parado ou andando. Sem alvo travado, mira na direção do cursor (ponto no chão sob o mouse) para mirar ataques. Soltar retorna à orientação pelo movimento. Ataque/reação a dano mantêm prioridade. Pausa, perda de foco, UI de inventário e arraste interrompem a intenção. Não muda velocidade, dano, câmera ou trajetos; animações laterais/de ré específicas ainda não fazem parte desta entrega.
+- [x] A câmera acompanha levemente a posição do cursor: deslocamento passivo suave de até 6% do enquadramento por eixo, nulo com o cursor no centro e conversão por zoom/aspect atual. Pausa, morte, inventário aberto e arraste de interface retornam ao enquadramento do Player; perda de foco zera o deslocamento. Rotação, zoom e movimento do personagem não mudam. Substitui o antigo arraste pelo botão do meio.
+- [x] Composição vertical: `vertical_bias` (padrão 0,18) desloca o enquadramento para baixo em fração da altura da tela, deixando o Player abaixo da linha central horizontal em qualquer zoom.
+- [x] Remapeamento completo de atalhos em Configurações → Controles: trocar tecla ou botão do mouse por ação, detecção de conflitos com indicação da ação em uso, restaurar ação ou tudo, salvar em `user://keybinds.cfg` e dicas atualizadas na hora. Inventário passou a usar a ação `toggle_inventory`. Botão esquerdo e scroll são reservados. 21 ações remapeáveis (WASD, corrida, arma, ataque, trava/alvo, inventário, HUD, pausa e atalhos da hotbar).
 
 Checagem breve de código e smoke test de hotbar/trava; validação de gameplay e aparência fica com o usuário. Navegação e cenário não foram alterados nesta entrega.
 
@@ -233,8 +234,8 @@ O registro de aquisições deve ser compartilhado entre a notificação de colet
 - [x] 8. Adicionar a configuração `câmera acompanha alvo` ou `câmera livre` durante o lock-on.
 - [x] 9. Permitir mover a câmera com o mouse até uma distância máxima definida somente no código.
 - [x] 10. Fazer a câmera respeitar inventário, outras interfaces, zoom e lock-on.
-- [ ] 11. Implementar remapeamento completo de teclas em uma etapa própria.
-- [ ] 12. Detectar conflitos, restaurar padrões, salvar escolhas e atualizar dicas de teclas em tempo real.
+- [x] 11. Implementar remapeamento completo de teclas em uma etapa própria.
+- [x] 12. Detectar conflitos, restaurar padrões, salvar escolhas e atualizar dicas de teclas em tempo real.
 
 O lock-on deve ser implementado incrementalmente. A primeira entrega conterá apenas travar, destravar, marcador visual e perda segura do alvo. Câmera e troca de alvos entram depois que essa base estiver estável.
 
@@ -340,7 +341,7 @@ Outras refatorações:
 
 ## Próxima tarefa
 
-Atual: Fases 2 e 3 confirmadas em código, incluindo o arraste de câmera. Restam os itens 11–12 da Fase 3 (remapeamento completo de atalhos, conflitos, restauração, salvamento e dicas em tempo real) antes do encerramento integral do roadmap original da Fase 3. O restante desta seção registra entregas anteriores.
+Atual: Fase 3 encerrada com a aprovação do usuário (remapeamento de atalhos, câmera com acompanhamento do cursor, `vertical_bias` e Alt mirando no cursor sem alvo). Próximo passo: Fase 4 — estrutura do jogo, inimigos e dificuldade, começando pela base de inimigos e os três arquétipos. O restante desta seção registra entregas anteriores.
 
 Ataque manual contínuo: segurar `manual_attack` (botão direito atual) repete golpes respeitando cooldown e fim da animação, mirando a posição atual do mouse a cada novo golpe. Soltar termina apenas o golpe em andamento e limpa ataques pendentes. Clique rápido continua dando um golpe. Iniciar ataque manual cancela aproximação/ataque automático; pausa, perda de foco, morte, arraste e passagem sobre UI interrompem a repetição, exigindo novo pressionamento.
 

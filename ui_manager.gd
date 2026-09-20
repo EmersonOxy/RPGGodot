@@ -65,10 +65,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_close_inventory()
 		_hold_opened = false
 		get_viewport().set_input_as_handled()
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_I:
-			_toggle_inventory()
-			get_viewport().set_input_as_handled()
+	if event.is_action_pressed("toggle_inventory"):
+		_toggle_inventory()
+		get_viewport().set_input_as_handled()
 
 
 func _toggle_inventory() -> void:

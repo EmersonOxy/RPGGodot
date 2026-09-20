@@ -24,9 +24,7 @@ func _ready() -> void:
 	overlay.add_child(_marker)
 
 func get_target() -> Node3D:
-	if not _alive(target) or player.get("is_dead") == true:
-		clear()
-	elif player.global_position.distance_to(target.global_position) > release_distance:
+	if target != null and (not _alive(target) or player.get("is_dead") == true or player.global_position.distance_to(target.global_position) > release_distance):
 		clear()
 	return target
 
@@ -100,7 +98,7 @@ func switch_target(side: int) -> bool:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("hold_target_facing") and not event.is_echo():
-		if not _facing_input_blocked() and get_target() != null:
+		if not _facing_input_blocked():
 			_facing_held = true
 			get_viewport().set_input_as_handled()
 		return
@@ -152,10 +150,27 @@ func get_facing_direction() -> Vector3:
 	if not Input.is_action_pressed("hold_target_facing") or _facing_input_blocked():
 		_facing_held = false
 		return Vector3.ZERO
-	var current := get_target()
+	var current := target
+	if current != null and not _alive(current):
+		clear()
+		current = null
 	if current == null:
-		return Vector3.ZERO
+		return _direction_to_mouse(get_viewport().get_mouse_position())
 	var direction := current.global_position - player.global_position
+	direction.y = 0.0
+	return direction
+
+func _direction_to_mouse(cursor: Vector2) -> Vector3:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return Vector3.ZERO
+	var origin := camera.project_ray_origin(cursor)
+	var normal := camera.project_ray_normal(cursor)
+	if absf(normal.y) < 0.0001:
+		return Vector3.ZERO
+	var t := (player.global_position.y - origin.y) / normal.y
+	var point := origin + normal * t
+	var direction := point - player.global_position
 	direction.y = 0.0
 	return direction
 

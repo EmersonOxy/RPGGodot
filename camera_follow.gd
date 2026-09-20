@@ -11,6 +11,8 @@ const REFERENCE_CAMERA_SIZE: float = ZOOM_LEVELS[DEFAULT_ZOOM_INDEX]
 @export var vertical_smooth_speed: float = 5.0
 ## Velocidade de interpolação do zoom ortográfico.
 @export var zoom_smooth_speed: float = 10.0
+## Fração do enquadramento vertical deslocada para baixo: o Player fica abaixo da linha central.
+@export var vertical_bias := 0.18
 
 var _target: Node3D = null
 var _offset := Vector3(12.0, 12.8, 12.0)
@@ -25,11 +27,9 @@ const LOCK_FOCUS_SPEED := 6.0
 var _lock_follow_enabled := true
 var _lock_active := false
 var _lock_focus := Vector3.ZERO
-const PAN_MAX_DISTANCE := 4.0 # World units in the camera plane; not user-configurable.
-const PAN_SMOOTH_SPEED := 12.0
-var _pan_dragging := false
-var _pan_goal := Vector2.ZERO
-var _pan_offset := Vector2.ZERO
+const MOUSE_SHIFT_FRACTION := 0.06 # Fração do enquadramento deslocada no cursor, no máximo.
+const MOUSE_SHIFT_SPEED := 8.0
+var _mouse_offset := Vector2.ZERO
 
 
 func play_hit_impulse(direction: Vector3, strength: float = 1.0) -> void:
@@ -75,7 +75,7 @@ func _process(delta: float) -> void:
 	p.y = lerpf(p.y, want.y, 1.0 - exp(-vertical_smooth_speed * delta))
 	global_position = p
 	_update_lock_focus(delta)
-	_update_pan(delta)
+	_update_mouse_shift(delta)
 
 	# Interpolação suave do Camera3D.size entre os níveis de zoom
 	var effective_size := _effective_target_size()
@@ -103,61 +103,49 @@ func _update_lock_focus(delta: float) -> void:
 		_lock_focus = desired
 
 
+func _vertical_span_world() -> float:
+	var rect := get_viewport().get_visible_rect()
+	var aspect := rect.size.x / maxf(rect.size.y, 1.0)
+	return size if keep_aspect == KEEP_HEIGHT else size / aspect
+
 func _update_projection_offsets() -> void:
 	# Scale the off-axis composition with the orthographic span, not camera distance.
 	# At the reference zoom this correction is exactly zero. Keep hit shake additive.
 	var ratio_delta := size / REFERENCE_CAMERA_SIZE - 1.0
 	var axes := global_basis.orthonormalized()
 	var hit_weight := pow(_hit_time / HIT_DURATION, 2.0)
-	h_offset = _offset.dot(axes.x) * ratio_delta + _lock_focus.dot(axes.x) + _pan_offset.x + _hit_offset.x * hit_weight
-	v_offset = _offset.dot(axes.y) * ratio_delta + _lock_focus.dot(axes.y) + _pan_offset.y + _hit_offset.y * hit_weight
+	h_offset = _offset.dot(axes.x) * ratio_delta + _lock_focus.dot(axes.x) + _mouse_offset.x + _hit_offset.x * hit_weight
+	v_offset = _offset.dot(axes.y) * ratio_delta + _lock_focus.dot(axes.y) + _mouse_offset.y + _hit_offset.y * hit_weight + _vertical_span_world() * vertical_bias
 
-func _pan_blocked() -> bool:
+func _mouse_shift_blocked() -> bool:
 	if get_tree().paused or not is_instance_valid(_target) or _target.get("is_dead") == true or get_viewport().gui_is_dragging():
 		return true
 	var inventory := _target.get_parent().get_node_or_null("Interface/UIManager/InventoryMenu")
-	return (inventory != null and inventory.get("_is_open") == true) or get_viewport().gui_get_hovered_control() != null
+	return inventory != null and inventory.get("_is_open") == true
 
-func _cancel_pan() -> void:
-	_pan_dragging = false
-	_pan_goal = Vector2.ZERO
+func _compute_mouse_shift(cursor: Vector2) -> Vector2:
+	var rect := get_viewport().get_visible_rect()
+	if not rect.has_point(cursor):
+		return Vector2.ZERO
+	var nx := (cursor.x - rect.get_center().x) / (rect.size.x * 0.5)
+	var ny := (cursor.y - rect.get_center().y) / (rect.size.y * 0.5)
+	var aspect := rect.size.x / rect.size.y
+	var span_x := size * aspect if keep_aspect == KEEP_HEIGHT else size
+	return Vector2(nx * span_x, -ny * _vertical_span_world()) * MOUSE_SHIFT_FRACTION
+
+func _update_mouse_shift(delta: float) -> void:
+	var target := Vector2.ZERO
+	if not _mouse_shift_blocked():
+		target = _compute_mouse_shift(get_viewport().get_mouse_position())
+	_mouse_offset = _mouse_offset.lerp(target, 1.0 - exp(-MOUSE_SHIFT_SPEED * delta))
+	if _mouse_offset.distance_squared_to(target) < 0.000001:
+		_mouse_offset = target
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_PAUSED or what == NOTIFICATION_APPLICATION_FOCUS_OUT:
-		_cancel_pan()
-
-func _input(event: InputEvent) -> void:
-	# Release must reach us even over GUI. Motion never moves the player.
-	if event.is_action_released("camera_pan"):
-		_cancel_pan()
-	elif event is InputEventMouseMotion and _pan_dragging:
-		if _pan_blocked():
-			_cancel_pan()
-		else:
-			_drag_pan(event.relative)
-			get_viewport().set_input_as_handled()
-
-func _drag_pan(relative: Vector2) -> void:
-	var viewport_size := get_viewport().get_visible_rect().size
-	var span := viewport_size.y if keep_aspect == KEEP_HEIGHT else viewport_size.x
-	var units_per_pixel := size / maxf(span, 1.0)
-	_pan_goal = (_pan_goal + Vector2(-relative.x, relative.y) * units_per_pixel).limit_length(PAN_MAX_DISTANCE)
-
-func _update_pan(delta: float) -> void:
-	if _pan_dragging and (_pan_blocked() or not Input.is_action_pressed("camera_pan")):
-		_cancel_pan()
-	_pan_offset = _pan_offset.lerp(_pan_goal, 1.0 - exp(-PAN_SMOOTH_SPEED * delta))
-	if _pan_offset.distance_squared_to(_pan_goal) < 0.000001:
-		_pan_offset = _pan_goal
-
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_mouse_offset = Vector2.ZERO
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("camera_pan"):
-		if not _pan_blocked():
-			_pan_dragging = true
-			_pan_goal = _pan_offset
-			get_viewport().set_input_as_handled()
-		return
 	if get_tree().paused or not _scroll_enabled or get_viewport().gui_is_dragging():
 		return
 	if event is InputEventMouseButton and event.pressed:

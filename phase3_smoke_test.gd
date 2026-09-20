@@ -18,6 +18,9 @@ func _initialize() -> void:
 	call_deferred("run")
 
 func run() -> void:
+	var keybinds := root.get_node_or_null("Keybinds")
+	if keybinds:
+		keybinds.reset_all("user://phase3_smoke_reset.cfg")
 	var world := Actor.new()
 	root.add_child(world)
 	var player := Actor.new()
@@ -135,6 +138,23 @@ func run() -> void:
 	lock_on.toggle()
 	enemy.free()
 	check(lock_on.get_target() == null, "Removed target handled safely")
+	# Sem alvo travado, Alt mira na direção do cursor.
+	var aim_cursor: Vector2 = camera.unproject_position(Vector3(6, 0, -3))
+	var aim_dir: Vector3 = lock_on._direction_to_mouse(aim_cursor)
+	check(aim_dir.y == 0.0 and aim_dir.is_equal_approx(Vector3(6, 0, -3)), "Mouse direction points at ground under cursor")
+	alt_key.pressed = true
+	alt_key.alt_pressed = true
+	Input.parse_input_event(alt_key)
+	Input.flush_buffered_events()
+	await process_frame
+	var held_dir: Vector3 = lock_on.get_facing_direction()
+	check(not held_dir.is_zero_approx() and held_dir.y == 0.0, "Alt without target faces the cursor")
+	alt_key.pressed = false
+	alt_key.alt_pressed = false
+	Input.parse_input_event(alt_key)
+	Input.flush_buffered_events()
+	await process_frame
+	check(lock_on.get_facing_direction() == Vector3.ZERO, "Releasing Alt clears mouse facing")
 	# Camera focus is a temporary layer over the player's selected zoom.
 	player.add_to_group("player")
 	var focus_target := Actor.new()
@@ -170,21 +190,25 @@ func run() -> void:
 	for frame in 120:
 		follow._process(1.0 / 60.0)
 	check(is_equal_approx(follow.size, 23.0) and follow._lock_focus == Vector3.ZERO, "Lost target returns to updated zoom base")
-	var pan_button := InputEventMouseButton.new()
-	pan_button.button_index = MOUSE_BUTTON_MIDDLE
-	pan_button.pressed = true
-	check(pan_button.is_action_pressed("camera_pan"), "Middle button matches camera pan")
-	follow._unhandled_input(pan_button)
-	check(follow._pan_dragging, "Middle button begins pan")
-	follow._drag_pan(Vector2(100000, -100000))
-	check(is_equal_approx(follow._pan_goal.length(), 4.0), "Pan is capped at four world units")
-	follow._pan_offset = follow._pan_goal
-	pan_button.pressed = false
-	follow._input(pan_button)
-	check(not follow._pan_dragging and follow._pan_goal == Vector2.ZERO, "Release resets pan goal")
+	var rect: Rect2 = follow.get_viewport().get_visible_rect()
+	var probe: Vector2 = rect.get_center() + Vector2(rect.size.x * 0.25, rect.size.y * 0.25)
+	var corner: Vector2 = follow._compute_mouse_shift(probe)
+	check(corner.x > 0.0 and corner.y < 0.0, "Bottom-right cursor shifts camera right and down")
+	var aspect := rect.size.x / rect.size.y
+	check(is_equal_approx(corner.x, follow.size * aspect * follow.MOUSE_SHIFT_FRACTION * 0.5), "Horizontal shift spans aspect fraction")
+	check(is_equal_approx(absf(corner.y), follow.size * follow.MOUSE_SHIFT_FRACTION * 0.5), "Vertical shift spans size fraction")
+	check(follow._compute_mouse_shift(rect.get_center()) == Vector2.ZERO, "Centered cursor is neutral")
+	check(follow._compute_mouse_shift(rect.position - Vector2(5, 5)) == Vector2.ZERO, "Cursor outside viewport is neutral")
+	follow._mouse_offset = corner * 2.0
 	for frame in 90:
 		follow._process(1.0 / 60.0)
-	check(follow._pan_offset == Vector2.ZERO and follow.global_basis == basis_before and is_equal_approx(follow.size, 23.0), "Pan returns without changing zoom or rotation")
+	check(follow._mouse_offset == follow._compute_mouse_shift(follow.get_viewport().get_mouse_position()), "Offset converges to cursor target")
+	player.is_dead = true
+	for frame in 120:
+		follow._process(1.0 / 60.0)
+	check(follow._mouse_offset == Vector2.ZERO, "Dead player returns camera to center")
+	player.is_dead = false
+	check(follow.global_basis == basis_before and is_equal_approx(follow.size, 23.0), "Mouse shift never changes zoom or rotation")
 	world.free()
 	await process_frame
 	print("PHASE3_SMOKE: ", failures, " failures")

@@ -8,11 +8,10 @@ extends PanelContainer
 	{"actions": [], "mouse": MOUSE_BUTTON_LEFT, "description": "Mover / selecionar / interagir"},
 	{"actions": ["manual_attack"], "description": "Atacar"},
 	{"actions": ["toggle_target_lock"], "description": "Travar / destravar alvo"},
-	{"actions": ["hold_target_facing"], "description": "Segurar: olhar para o alvo"},
+	{"actions": ["hold_target_facing"], "description": "Segurar: mirar no alvo/cursor"},
 	{"actions": ["target_lock_left", "target_lock_right"], "description": "Trocar alvo: esquerda / direita"},
 	{"actions": [], "mouse": MOUSE_BUTTON_WHEEL_UP, "description": "Zoom"},
-	{"actions": ["camera_pan"], "description": "Segurar e arrastar: câmera"},
-	{"actions": [], "key": KEY_I, "description": "Inventário"},
+	{"actions": ["toggle_inventory"], "description": "Inventário"},
 	{"actions": ["toggle_pause"], "description": "Menu / pausa"},
 ]
 const KEY_ICONS := {
@@ -36,6 +35,9 @@ func _ready() -> void:
 	_settings = get_node("/root/DisplaySettings")
 	_settings.interface_settings_applied.connect(_update_visibility)
 	_settings.interface_settings_applied.connect(refresh_controls)
+	var keybinds := get_node_or_null("/root/Keybinds")
+	if keybinds:
+		keybinds.keybinds_applied.connect(refresh_controls)
 	refresh_controls()
 	_update_visibility()
 	_bind_inventory.call_deferred()
@@ -118,7 +120,7 @@ func _add_binding(parent: Control, event: InputEvent) -> void:
 			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			parent.add_child(icon)
 		else:
-			_add_text(parent, "Esc" if key == KEY_ESCAPE else event.as_text().replace(" (Physical)", ""))
+			_add_text(parent, "Esc" if key == KEY_ESCAPE else event.as_text().replace(" - Physical", "").replace(" (Physical)", ""))
 	elif event is InputEventMouseButton:
 		var labels := {MOUSE_BUTTON_LEFT: "Mouse Esq.", MOUSE_BUTTON_RIGHT: "Mouse Dir.", MOUSE_BUTTON_MIDDLE: "Mouse Meio", MOUSE_BUTTON_WHEEL_UP: "Scroll", MOUSE_BUTTON_WHEEL_DOWN: "Scroll"}
 		_add_text(parent, labels.get(event.button_index, event.as_text()))
