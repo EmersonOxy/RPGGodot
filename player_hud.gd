@@ -28,6 +28,7 @@ var _max_hp: int = 100
 var _action_slots: Array[PanelContainer] = []
 var _action_labels: Array[Label] = []
 var _action_icons: Array[TextureRect] = []
+var _action_counts: Array[Label] = []
 var _action_data: Array = [null, null, null, null, null]
 var _action_qtys: Array = [0, 0, 0, 0, 0]
 var _selected_action_slot: int = -1
@@ -191,6 +192,18 @@ func _setup_action_bar() -> void:
 			icon.visible = false
 			slot.add_child(icon)
 			_action_icons.append(icon)
+			var count := Label.new()
+			count.name = "ItemQuantity"
+			count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			count.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+			count.add_theme_font_size_override("font_size", 12)
+			count.add_theme_color_override("font_color", Color.WHITE)
+			count.add_theme_color_override("font_outline_color", Color.BLACK)
+			count.add_theme_constant_override("outline_size", 4)
+			count.visible = false
+			slot.add_child(count)
+			_action_counts.append(count)
 
 			_update_slot_style(idx)
 
@@ -344,10 +357,14 @@ func _update_slot_display(slot_idx: int) -> void:
 	var item: ItemData = _actions.get_item(slot_idx)
 	var label := _action_labels[slot_idx]
 	var icon: TextureRect = _action_icons[slot_idx] if slot_idx < _action_icons.size() else null
+	var count := _action_counts[slot_idx]
+	var quantity: int = _actions.inventory.count_item(item) if item != null else 0
+	count.text = "x%d" % quantity
+	count.visible = item != null and quantity > 1
 	label.add_theme_font_size_override("font_size", 13 if item else 17)
 	if item != null and item.icon != null:
 		# Com ícone, o slot mostra apenas número e quantidade (sem o nome).
-		label.text = "%d\nx%d" % [slot_idx + 1, _actions.inventory.count_item(item)]
+		label.text = str(slot_idx + 1)
 		# Ícone compartilhado com o inventário: ocupa a metade superior do slot.
 		icon.texture = item.icon
 		icon.visible = true
@@ -358,7 +375,7 @@ func _update_slot_display(slot_idx: int) -> void:
 		icon.offset_bottom = 0
 		label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	else:
-		label.text = "%d\n%s\nx%d" % [slot_idx + 1, item.display_name.left(6), _actions.inventory.count_item(item)] if item else str(slot_idx + 1)
+		label.text = "%d\n%s" % [slot_idx + 1, item.display_name.left(6)] if item else str(slot_idx + 1)
 		icon.visible = false
 		label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		if item != null:

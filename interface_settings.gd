@@ -7,6 +7,8 @@ const CURSORS = preload("res://cursor_catalog.gd")
 var settings: Node
 var _hud_option: CheckButton
 var _cursor_size_slider: HSlider
+var _movement_option: OptionButton
+var _lock_camera_option: OptionButton
 
 func _ready() -> void:
 	settings = get_node("/root/DisplaySettings")
@@ -19,6 +21,24 @@ func _ready() -> void:
 	settings.interface_settings_applied.connect(_sync)
 
 func _build_extra_controls() -> void:
+	var movement_label := Label.new()
+	movement_label.text = "Movimentação"
+	$Grid.add_child(movement_label)
+	_movement_option = OptionButton.new()
+	_movement_option.name = "MovementMode"
+	for title in ["Mouse", "WASD", "Híbrido (mouse + WASD)"]:
+		_movement_option.add_item(title)
+	$Grid.add_child(_movement_option)
+	_movement_option.item_selected.connect(_on_movement_selected)
+	var camera_label := Label.new()
+	camera_label.text = "Câmera ao travar alvo"
+	$Grid.add_child(camera_label)
+	_lock_camera_option = OptionButton.new()
+	_lock_camera_option.name = "LockCameraMode"
+	_lock_camera_option.add_item("Livre")
+	_lock_camera_option.add_item("Acompanhar alvo (+ zoom suave)")
+	$Grid.add_child(_lock_camera_option)
+	_lock_camera_option.item_selected.connect(_on_lock_camera_selected)
 	var hud_label := Label.new()
 	hud_label.text = "Mostrar HUD"
 	hud_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -43,6 +63,10 @@ func _build_extra_controls() -> void:
 	_cursor_size_slider.drag_ended.connect(_on_cursor_size_drag_ended)
 
 func _sync() -> void:
+	if _lock_camera_option:
+		_lock_camera_option.select(1 if settings.lock_camera_follow else 0)
+	if _movement_option:
+		_movement_option.select(settings.MOVEMENT_MODES.find(settings.movement_input_mode))
 	cursor_option.select(CURSORS.index_for(settings.cursor_style))
 	controls_option.set_pressed_no_signal(settings.show_controls)
 	if _hud_option:
@@ -52,6 +76,16 @@ func _sync() -> void:
 
 func _on_cursor_selected(index: int) -> void:
 	_save(CURSORS.STYLES[index].id, settings.show_controls, settings.hud_visible, settings.cursor_size)
+
+func _on_movement_selected(index: int) -> void:
+	var error: Error = settings.apply_movement_mode(settings.MOVEMENT_MODES[index])
+	status.text = "Movimentação: aplicada e salva." if error == OK else "Não foi possível salvar a movimentação (%d)." % error
+	_sync()
+
+func _on_lock_camera_selected(index: int) -> void:
+	var error: Error = settings.apply_lock_camera_follow(index == 1)
+	status.text = "Câmera: aplicada e salva." if error == OK else "Não foi possível salvar a câmera (%d)." % error
+	_sync()
 
 func _on_controls_toggled(enabled: bool) -> void:
 	_save(settings.cursor_style, enabled, settings.hud_visible, settings.cursor_size)

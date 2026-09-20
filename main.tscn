@@ -3,12 +3,14 @@
 [ext_resource type="Script" uid="uid://cfgcyjobf28mg" path="res://main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://cerfwlslaons" path="res://inventory.gd" id="2b_inventory"]
 [ext_resource type="Script" uid="uid://cb665xfpm6k44" path="res://player.gd" id="2_player"]
-[ext_resource type="NavigationMesh" path="res://world_navigation.tres" id="3_navigation"]
+[ext_resource type="Texture2D" uid="uid://blj7wnrk33400" path="res://assets/textures/grass/grass_stylized_albedo.png" id="3_82xsv"]
+[ext_resource type="NavigationMesh" uid="uid://csa8w4m4lxi2f" path="res://world_navigation.tres" id="3_navigation"]
 [ext_resource type="ArrayMesh" path="res://ramp_mesh.tres" id="4_ramp"]
 [ext_resource type="PackedScene" path="res://enemy_dummy.tscn" id="5_enemy"]
+[ext_resource type="Texture2D" uid="uid://dnjbv13866pud" path="res://assets/textures/smooth_stone_interior/medieval_smooth_stone_albedo.png" id="5_getpj"]
 [ext_resource type="Script" uid="uid://b4r4fmimepvkb" path="res://occlusion_fade.gd" id="6_fade"]
-[ext_resource type="Material" path="res://mask_props.tres" id="7_maskprops"]
-[ext_resource type="Material" path="res://mask_platform.tres" id="8_maskplat"]
+[ext_resource type="Material" uid="uid://bw85x8dhuxkdh" path="res://mask_props.tres" id="7_maskprops"]
+[ext_resource type="Material" uid="uid://dykg0netg4vi5" path="res://mask_platform.tres" id="8_maskplat"]
 [ext_resource type="Script" uid="uid://b3sr0kewudg6j" path="res://camera_follow.gd" id="9_camfollow"]
 [ext_resource type="PackedScene" path="res://pause_menu.tscn" id="10_pausemenu"]
 [ext_resource type="Script" uid="uid://bxvcd80vhir5e" path="res://ui_manager.gd" id="11_uimanager"]
@@ -29,11 +31,13 @@ ambient_light_energy = 0.55
 reflected_light_source = 2
 tonemap_mode = 2
 
-[sub_resource type="StandardMaterial3D" id="Material_ground"]
-albedo_color = Color(0.32, 0.46, 0.38, 1)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_getpj"]
+albedo_texture = ExtResource("3_82xsv")
+uv1_scale = Vector3(30, 30, 30)
+texture_filter = 5
 
 [sub_resource type="BoxMesh" id="Mesh_ground"]
-material = SubResource("Material_ground")
+material = SubResource("StandardMaterial3D_getpj")
 size = Vector3(100, 0.4, 100)
 
 [sub_resource type="BoxShape3D" id="Shape_ground"]
@@ -78,7 +82,9 @@ size = Vector3(0.75, 2, 3.5)
 points = PackedVector3Array(-3, 0, -1.75, -3, 0, 1.75, 3, 0, -1.75, 3, 0, 1.75, 3, 2, -1.75, 3, 2, 1.75)
 
 [sub_resource type="StandardMaterial3D" id="Material_platform"]
-albedo_color = Color(0.68995565, 0.49896574, 0.29506415, 1)
+albedo_color = Color(0.7962742, 0.81314564, 0.8142663, 1)
+albedo_texture = ExtResource("5_getpj")
+uv1_scale = Vector3(25, 25, 25)
 
 [sub_resource type="BoxMesh" id="Mesh_platform"]
 material = SubResource("Material_platform")
@@ -349,13 +355,31 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 2.946134, 10.658752, 1, -15.1628
 collision_mask = 4
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Plataforma 4" unique_id=1989753416]
-material_override = ExtResource("8_maskplat")
 mesh = SubResource("Mesh_platform")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Plataforma 4" unique_id=133341714]
 shape = SubResource("Shape_platform")
 
 [node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Plataforma 4" unique_id=1222508434]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
+visible = false
+height = 2.0
+vertices = PackedVector3Array(-3, 0, -2.5, 3, 0, -2.5, 3, 0, 2.5, -3, 0, 2.5)
+affect_navigation_mesh = true
+carve_navigation_mesh = true
+avoidance_enabled = false
+
+[node name="Plataforma 6" type="StaticBody3D" parent="NavigationRegion3D/Props" unique_id=148144274 groups=["walkable"]]
+transform = Transform3D(-2.486248e-08, -0.080188386, 0, 0.5687872, -3.5051457e-09, 0, 0, 0, 2.946134, 13.69324, 0.29009962, -15.162813)
+collision_mask = 4
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="NavigationRegion3D/Props/Plataforma 6" unique_id=2024548195]
+mesh = SubResource("Mesh_platform")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/Props/Plataforma 6" unique_id=2027876361]
+shape = SubResource("Shape_platform")
+
+[node name="ExcludeInterior" type="NavigationObstacle3D" parent="NavigationRegion3D/Props/Plataforma 6" unique_id=568640939]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1, 0)
 visible = false
 height = 2.0

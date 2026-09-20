@@ -7,7 +7,11 @@ extends PanelContainer
 	{"actions": ["toggle_weapon"], "description": "Sacar / guardar arma"},
 	{"actions": [], "mouse": MOUSE_BUTTON_LEFT, "description": "Mover / selecionar / interagir"},
 	{"actions": ["manual_attack"], "description": "Atacar"},
+	{"actions": ["toggle_target_lock"], "description": "Travar / destravar alvo"},
+	{"actions": ["hold_target_facing"], "description": "Segurar: olhar para o alvo"},
+	{"actions": ["target_lock_left", "target_lock_right"], "description": "Trocar alvo: esquerda / direita"},
 	{"actions": [], "mouse": MOUSE_BUTTON_WHEEL_UP, "description": "Zoom"},
+	{"actions": ["camera_pan"], "description": "Segurar e arrastar: câmera"},
 	{"actions": [], "key": KEY_I, "description": "Inventário"},
 	{"actions": ["toggle_pause"], "description": "Menu / pausa"},
 ]
@@ -31,6 +35,8 @@ func _ready() -> void:
 	modulate = Color(1, 1, 1, 0.72)
 	_settings = get_node("/root/DisplaySettings")
 	_settings.interface_settings_applied.connect(_update_visibility)
+	_settings.interface_settings_applied.connect(refresh_controls)
+	refresh_controls()
 	_update_visibility()
 	_bind_inventory.call_deferred()
 
@@ -74,6 +80,9 @@ func refresh_controls() -> void:
 		rows.remove_child(child)
 		child.queue_free()
 	for entry in entries:
+		var movement_mode: String = _settings.movement_input_mode if is_instance_valid(_settings) else "hybrid"
+		if movement_mode == "mouse" and "move_forward" in entry.get("actions", []):
+			continue
 		var row := HBoxContainer.new()
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_theme_constant_override("separation", 10)
@@ -90,6 +99,8 @@ func refresh_controls() -> void:
 			_add_text(bindings, "—")
 		var description := Label.new()
 		description.text = entry.get("description", "")
+		if movement_mode == "wasd" and entry.get("mouse", -1) == MOUSE_BUTTON_LEFT:
+			description.text = "Selecionar / coletar perto"
 		description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		description.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(description)
@@ -109,7 +120,7 @@ func _add_binding(parent: Control, event: InputEvent) -> void:
 		else:
 			_add_text(parent, "Esc" if key == KEY_ESCAPE else event.as_text().replace(" (Physical)", ""))
 	elif event is InputEventMouseButton:
-		var labels := {MOUSE_BUTTON_LEFT: "Mouse Esq.", MOUSE_BUTTON_RIGHT: "Mouse Dir.", MOUSE_BUTTON_WHEEL_UP: "Scroll", MOUSE_BUTTON_WHEEL_DOWN: "Scroll"}
+		var labels := {MOUSE_BUTTON_LEFT: "Mouse Esq.", MOUSE_BUTTON_RIGHT: "Mouse Dir.", MOUSE_BUTTON_MIDDLE: "Mouse Meio", MOUSE_BUTTON_WHEEL_UP: "Scroll", MOUSE_BUTTON_WHEEL_DOWN: "Scroll"}
 		_add_text(parent, labels.get(event.button_index, event.as_text()))
 
 func _add_text(parent: Control, text: String) -> void:

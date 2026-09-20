@@ -46,6 +46,9 @@ var cursor_style := "default"
 var show_controls := true
 var hud_visible := true
 var cursor_size := 1.0
+var movement_input_mode := "hybrid"
+var lock_camera_follow := true
+const MOVEMENT_MODES := ["mouse", "wasd", "hybrid"]
 var master_volume := 1.0
 var effects_volume := 1.0
 var sword_volume := 1.0
@@ -64,7 +67,7 @@ func get_defaults() -> Dictionary:
 	return {"display_mode": DEFAULT_DISPLAY_MODE, "resolution": DEFAULT_RESOLUTION,
 		"vsync": DEFAULT_VSYNC, "fps_limit": DEFAULT_FPS_LIMIT, "render_scale": DEFAULT_RENDER_SCALE,
 		"quality": DEFAULT_QUALITY, "default_zoom_index": DEFAULT_ZOOM_INDEX, "zoom_with_scroll": true,
-		"cursor_style": "default", "show_controls": true, "hud_visible": true, "cursor_size": 1.0,
+		"cursor_style": "default", "show_controls": true, "hud_visible": true, "cursor_size": 1.0, "movement_input_mode": "hybrid", "lock_camera_follow": true,
 		"master_volume": 1.0, "effects_volume": 1.0, "sword_volume": 1.0, "steps_volume": 1.0, "audio_muted": false}
 
 func get_settings() -> Dictionary:
@@ -85,6 +88,8 @@ func sanitize(values: Dictionary) -> Dictionary:
 		if not valid[pair[0]] in pair[1]:
 			valid[pair[0]] = get_defaults()[pair[0]]
 	valid.cursor_style = CURSORS.STYLES[CURSORS.index_for(valid.cursor_style)].id
+	if not valid.movement_input_mode in MOVEMENT_MODES:
+		valid.movement_input_mode = "hybrid"
 	valid.cursor_size = clampf(valid.cursor_size, 0.5, 2.0)
 	for key in AUDIO_DEFAULTS:
 		if key != "audio_muted":
@@ -92,6 +97,8 @@ func sanitize(values: Dictionary) -> Dictionary:
 	return valid
 
 func _section_for(key: String) -> String:
+	if key in ["movement_input_mode", "lock_camera_follow"]:
+		return "controls"
 	if AUDIO_DEFAULTS.has(key):
 		return "audio"
 	return SECTION_INTERFACE if key in ["cursor_style", "show_controls", "hud_visible", "cursor_size"] else SECTION_VIDEO
@@ -177,6 +184,28 @@ func set_cursor_size(value: float) -> void:
 	cursor_size = clampf(value, 0.5, 2.0)
 	_apply_interface_settings()
 
+func apply_movement_mode(mode: String, path: String = CONFIG_PATH) -> Error:
+	if not mode in MOVEMENT_MODES:
+		return ERR_INVALID_PARAMETER
+	var values := get_settings()
+	values.movement_input_mode = mode
+	var error := _save_values(values, path)
+	if error != OK:
+		return error
+	movement_input_mode = mode
+	interface_settings_applied.emit()
+	return OK
+
+func apply_lock_camera_follow(enabled: bool, path: String = CONFIG_PATH) -> Error:
+	var values := get_settings()
+	values.lock_camera_follow = enabled
+	var error := _save_values(values, path)
+	if error != OK:
+		return error
+	lock_camera_follow = enabled
+	interface_settings_applied.emit()
+	return OK
+
 
 func _apply_interface_settings() -> void:
 	CURSORS.apply(cursor_style, cursor_size)
@@ -195,6 +224,8 @@ func restore_defaults() -> void:
 	show_controls = true
 	hud_visible = true
 	cursor_size = 1.0
+	movement_input_mode = "hybrid"
+	lock_camera_follow = true
 	for key in AUDIO_DEFAULTS:
 		set(key, AUDIO_DEFAULTS[key])
 	save_settings()

@@ -153,6 +153,8 @@ func _physics_process(_delta: float) -> void:
 		return
 
 	if hit.collider.is_in_group("walkable") and hit.normal.y > 0.7:
+		if not player.allows_mouse_movement():
+			return
 		select_enemy(null)
 		player.set_destination(hit.position)
 		click_indicator.show_at(hit.position, hit.normal)

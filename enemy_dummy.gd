@@ -7,7 +7,8 @@ signal died(enemy: Node3D)
 enum State { IDLE, CHASE, ATTACK, RETURN }
 
 @export var max_health: int = 100
-@export_range(0.8, 10.0) var attack_range: float = 2.0
+# Stay inside the player's 1.5-unit reach, with a small movement margin.
+@export_range(0.8, 10.0) var attack_range: float = 1.4
 @export var attack_damage: int = 10
 @export_range(0.1, 10.0) var attack_interval: float = 1.5
 @export_range(0.0, 2.0) var enemy_attack_recovery: float = 0.55

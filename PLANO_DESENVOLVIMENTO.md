@@ -2,6 +2,42 @@
 
 Documento consolidado em 19/09/2026. Deve ser atualizado conforme as tarefas forem implementadas ou as decisões de design mudarem.
 
+## Status atualizado — Fase 3: controles, alvo e câmera entregues
+
+Fase 1 entregue. Fase 2: todas as entregas implementadas e confirmadas. As notas antigas de "fase atual" abaixo são históricas.
+
+### Fase 2 — entregas concluídas
+
+- [x] Notificação de coleta com ícone, nome e quantidade, fade e duração configurável.
+- [x] Fila/pilha de notificações e deslocamento acompanhando abertura/fechamento do inventário.
+- [x] Registro compartilhado de aquisições e destaque dos itens novos; hover/interação remove o destaque.
+- [x] Marcação mantida ao acrescentar quantidades à mesma pilha/recurso de item.
+- [x] Opção de mostrar/esconder HUD e dicas de controles com menor destaque.
+- [x] Tamanho e estilo do cursor aplicados em tempo real.
+- [x] Contador independente na hotbar, no canto inferior direito, branco com contorno preto; soma as pilhas do tipo de item e atualiza ao coletar, consumir ou remover. Como no inventário, quantidade 1 não exibe contador.
+- [x] Polimentos adicionais: modelos/ícones, animação de surgimento do loot, stacking dos nameplates, hover/clique, escala de texto/fundo/sombra e colisão conforme zoom.
+
+Limite conhecido: o registro de "novo" usa identidade do recurso; unificar essa marcação entre recursos distintos com o mesmo ID não foi implementado. Não confundir com a contagem da hotbar, que já soma por tipo/ID.
+
+### Fase 3 — funcionalidades de gameplay concluídas
+
+As entregas de movimentação, trava e câmera estão implementadas e confirmadas. Ressalva: o remapeamento completo de atalhos (incluindo conflitos, restauração e persistência por modo), previsto no roadmap original, ainda não foi implementado; portanto o escopo original da fase não está 100% encerrado.
+
+Ajuste após teste: marcador agora é um ponto 2D branco de raio 5 px com contorno escuro, projetado no centro do corpo (posição da CollisionShape3D; fallback de 0,9 unidade acima da origem) após atualização da câmera, independente de fonte/zoom. Alcance dos dummies reduzido de 2,0 para 1,4, ficando dentro do alcance de 1,5 do Player para permitir revidar. A trava continua sem aumentar alcance nem atravessar obstáculos.
+
+- [x] Ação `toggle_target_lock`, tecla T: travar/destravar sem iniciar perseguição automática.
+- [x] Prioriza inimigo selecionado válido; senão escolhe o mais próximo do cursor entre candidatos visíveis, sem parede entre ele e o Player e a até 12 unidades.
+- [x] Ponto branco no centro do corpo; ataques manuais miram no alvo travado e priorizam esse alvo no impacto, mantendo alcance, direção comprometida do golpe e teste de obstáculos.
+- [x] Libera ao morrer/remover alvo, morrer Player ou ultrapassar 18 unidades. Pausa/UI/arraste bloqueiam o comando.
+- [x] Troca lateral: Q para esquerda e E para direita na tela. Escolhe o candidato válido mais próximo do alvo atual naquele lado; mantém a trava se não houver candidato. Reutiliza alcance de aquisição, visibilidade e obstáculos. Sem trava, não inicia uma automaticamente. Não altera câmera nem perseguição.
+- [x] Modos Mouse/WASD/Híbrido em Configurações → Interface → Movimentação, aplicados imediatamente e salvos na seção `controls` (`movement_input_mode`). Híbrido é o padrão. Trocar cancela deslocamento/aproximação anteriores, preservando trava e ataques. No modo WASD, cliques selecionam inimigos e coletam loot próximo, sem caminhar automaticamente; no modo Mouse, WASD não movimenta. Dicas acompanham o modo sem apagar atalhos do InputMap.
+- [x] Câmera Livre/Acompanhar alvo em Configurações → Interface, salva como `controls/lock_camera_follow`; acompanhamento ativo por padrão. Na trava, zoom temporário de 13,5% (multiplicador 0,865; respeita mínimo 6) e foco suavizado 40% em direção ao alvo, limitado a 4 unidades ou 20% do span de zoom. Rotação isométrica preservada, offsets somados à composição e ao impacto. Ao destravar, perder alvo ou escolher Livre, retorna suavemente; scroll durante a trava atualiza o zoom-base a restaurar. Troca Q/E também suaviza o foco.
+- [x] Segurar Alt (`hold_target_facing`) mantém o personagem voltado suavemente ao alvo travado, parado ou andando. Soltar retorna à orientação pelo movimento. Sem alvo não faz nada; ataque/reação a dano mantêm prioridade. Pausa, perda de foco, UI de inventário e arraste interrompem a intenção. Não muda velocidade, dano, câmera ou trajetos; animações laterais/de ré específicas ainda não fazem parte desta entrega.
+- [x] Segurar botão do meio e arrastar desloca suavemente a câmera; limite fixo de 4 unidades no plano da câmera, sem ajuste nas configurações. Conversão por zoom/aspect atual. Ao soltar, retorna ao enquadramento do Player ou ao foco do alvo, mantendo zoom e rotação. UI, pausa, perda de foco e morte interrompem o arraste. Não altera movimento do personagem.
+- [ ] Pendência do escopo original: remapeamento completo de atalhos, detecção de conflitos, restauração e salvamento das escolhas.
+
+Checagem breve de código e smoke test de hotbar/trava; validação de gameplay e aparência fica com o usuário. Navegação e cenário não foram alterados nesta entrega.
+
 ## Forma de trabalho combinada
 
 Implementar em entregas pequenas. Por solicitação do usuário, realizar apenas verificações MUITO breves de código/carregamento, ou testes adicionais quando explicitamente solicitados. Os testes de gameplay, apresentação e balanceamento serão realizados pelo usuário, que retornará os resultados. Evitar baterias extensas para economizar créditos.
@@ -141,7 +177,7 @@ Uma primeira vertical slice pode conter:
 
 ### Fase 1 — Combate sólido
 
-Esta é a fase atual e deve ser executada aos poucos.
+Fase entregue; histórico dos objetivos originais:
 
 1. Diminuir a velocidade da animação de ataque, que atualmente está rápida demais.
 2. Parar brevemente Player e inimigos durante a preparação e o impacto dos ataques.
@@ -171,34 +207,34 @@ Primeira versão da stamina:
 
 ### Fase 2 — Loot e interface
 
-1. Mostrar no canto inferior direito o último item coletado, com ícone, nome e quantidade.
-2. Aplicar fade e tempo de exibição configurável.
-3. Empilhar ou enfileirar coletas realizadas em sequência.
-4. Mover a notificação em direção ao centro quando o inventário abrir, evitando sobreposição.
-5. Retornar a notificação ao canto quando o inventário fechar.
-6. Mostrar uma borda fina em destaque ao redor dos itens novos.
-7. Definir quando um item deixa de ser novo: hover, seleção ou interação.
-8. Preservar corretamente o estado de item novo ao juntar pilhas.
-9. Adicionar opção para esconder ou exibir a HUD.
-10. Dar menos destaque visual às informações de teclas no canto inferior esquerdo.
-11. Adicionar configuração de tamanho do cursor aplicada em tempo real.
+- [x] 1. Mostrar no canto inferior direito o último item coletado, com ícone, nome e quantidade.
+- [x] 2. Aplicar fade e tempo de exibição configurável.
+- [x] 3. Empilhar ou enfileirar coletas realizadas em sequência.
+- [x] 4. Mover a notificação em direção ao centro quando o inventário abrir, evitando sobreposição.
+- [x] 5. Retornar a notificação ao canto quando o inventário fechar.
+- [x] 6. Mostrar uma borda fina em destaque ao redor dos itens novos.
+- [x] 7. Definir quando um item deixa de ser novo: hover, seleção ou interação.
+- [x] 8. Preservar corretamente o estado de item novo ao juntar pilhas.
+- [x] 9. Adicionar opção para esconder ou exibir a HUD.
+- [x] 10. Dar menos destaque visual às informações de teclas no canto inferior esquerdo.
+- [x] 11. Adicionar configuração de tamanho do cursor aplicada em tempo real.
 
 O registro de aquisições deve ser compartilhado entre a notificação de coleta e a marcação de itens novos.
 
 ### Fase 3 — Controles, trava de alvo e câmera
 
-1. Permitir os modos de movimento `mouse`, `WASD` e `híbrido`.
-2. Manter somente os atalhos relevantes ativos para o modo escolhido.
-3. Criar trava e destrava de alvo.
-4. Mostrar um ponto branco ou marcador equivalente sobre o inimigo travado.
-5. Destravar automaticamente quando o alvo morrer, for removido ou sair do limite permitido.
-6. Permitir trocar de alvo para os lados.
-7. Separar adequadamente a rotação do personagem e o controle da câmera.
-8. Adicionar a configuração `câmera acompanha alvo` ou `câmera livre` durante o lock-on.
-9. Permitir mover a câmera com o mouse até uma distância máxima definida somente no código.
-10. Fazer a câmera respeitar inventário, outras interfaces, zoom e lock-on.
-11. Implementar remapeamento completo de teclas em uma etapa própria.
-12. Detectar conflitos, restaurar padrões, salvar escolhas e atualizar dicas de teclas em tempo real.
+- [x] 1. Permitir os modos de movimento `mouse`, `WASD` e `híbrido`.
+- [x] 2. Manter somente os atalhos relevantes ativos para o modo escolhido.
+- [x] 3. Criar trava e destrava de alvo.
+- [x] 4. Mostrar um ponto branco ou marcador equivalente sobre o inimigo travado.
+- [x] 5. Destravar automaticamente quando o alvo morrer, for removido ou sair do limite permitido.
+- [x] 6. Permitir trocar de alvo para os lados.
+- [x] 7. Separar adequadamente a rotação do personagem e o controle da câmera.
+- [x] 8. Adicionar a configuração `câmera acompanha alvo` ou `câmera livre` durante o lock-on.
+- [x] 9. Permitir mover a câmera com o mouse até uma distância máxima definida somente no código.
+- [x] 10. Fazer a câmera respeitar inventário, outras interfaces, zoom e lock-on.
+- [ ] 11. Implementar remapeamento completo de teclas em uma etapa própria.
+- [ ] 12. Detectar conflitos, restaurar padrões, salvar escolhas e atualizar dicas de teclas em tempo real.
 
 O lock-on deve ser implementado incrementalmente. A primeira entrega conterá apenas travar, destravar, marcador visual e perda segura do alvo. Câmera e troca de alvos entram depois que essa base estiver estável.
 
@@ -303,6 +339,8 @@ Outras refatorações:
 - Interação entre lock-on, câmera livre e interfaces abertas.
 
 ## Próxima tarefa
+
+Atual: Fases 2 e 3 confirmadas em código, incluindo o arraste de câmera. Restam os itens 11–12 da Fase 3 (remapeamento completo de atalhos, conflitos, restauração, salvamento e dicas em tempo real) antes do encerramento integral do roadmap original da Fase 3. O restante desta seção registra entregas anteriores.
 
 Ataque manual contínuo: segurar `manual_attack` (botão direito atual) repete golpes respeitando cooldown e fim da animação, mirando a posição atual do mouse a cada novo golpe. Soltar termina apenas o golpe em andamento e limpa ataques pendentes. Clique rápido continua dando um golpe. Iniciar ataque manual cancela aproximação/ataque automático; pausa, perda de foco, morte, arraste e passagem sobre UI interrompem a repetição, exigindo novo pressionamento.
 

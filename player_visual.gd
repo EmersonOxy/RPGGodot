@@ -164,6 +164,10 @@ func update_movement(actual_velocity: Vector3, delta: float) -> void:
 		animation_tree.set("parameters/" + group + "/blend_position", _blend_speed)
 	var scales := [unarmed_walk_playback, unarmed_run_playback, armed_walk_playback, armed_run_playback]
 	var paths := ["Unarmed/1", "Unarmed/2", "Armed/1", "Armed/2"]
+	var facing := Vector3.ZERO
+	var lock_on := body.get_node_or_null("TargetLock")
+	if lock_on != null and not _shots.has("Attack") and not _shots.has("Hit"):
+		facing = lock_on.get_facing_direction()
 	# Preserve gait tuning against the original movement scale; slowing travel
 	# must not compound the separately requested animation speed reduction.
 	var animation_speed: float = speed * 0.85 / body.MOVEMENT_SPEED_SCALE
@@ -171,7 +175,7 @@ func update_movement(actual_velocity: Vector3, delta: float) -> void:
 		var reference := 4.0 if i % 2 == 0 else 6.0
 		var rate := clampf(scales[i] * clampf(animation_speed / reference, 0.5, 1.5), 0.4, 4.0)
 		animation_tree.set("parameters/" + paths[i] + "/Speed/scale", rate)
-	if moving:
+	if moving or not facing.is_zero_approx():
 		_cancel_long_idle()
 	elif weapon_state == WeaponState.DRAWN and _shots.is_empty():
 		_idle_time += delta
@@ -182,6 +186,8 @@ func update_movement(actual_velocity: Vector3, delta: float) -> void:
 	else:
 		_idle_time = 0.0
 	var direction := planar
+	if not facing.is_zero_approx():
+		direction = facing
 	if _shots.has("Attack") and _attack_pending:
 		if not _manual_attack_direction.is_zero_approx():
 			direction = _manual_attack_direction

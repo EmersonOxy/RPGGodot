@@ -83,6 +83,7 @@ var max_xp: int = 100
 
 enum MoveMode { CLICK_MOVE, MANUAL_MOVE }
 var move_mode: MoveMode = MoveMode.CLICK_MOVE
+var _movement_input_mode := "hybrid"
 var is_moving: bool = false
 var move_direction: Vector3 = Vector3.ZERO
 
@@ -100,6 +101,29 @@ func _ready() -> void:
 	_equip_starting_items()
 	recalculate_stats()
 	health = max_health
+	var lock_component := preload("res://target_lock.gd").new()
+	lock_component.name = "TargetLock"
+	add_child(lock_component)
+	var settings := get_node("/root/DisplaySettings")
+	settings.interface_settings_applied.connect(_on_movement_settings_changed)
+	_on_movement_settings_changed()
+
+func allows_mouse_movement() -> bool:
+	return _movement_input_mode != "wasd"
+
+func allows_keyboard_movement() -> bool:
+	return _movement_input_mode != "mouse"
+
+func _on_movement_settings_changed() -> void:
+	var mode: String = get_node("/root/DisplaySettings").movement_input_mode
+	if mode == _movement_input_mode:
+		return
+	_movement_input_mode = mode
+	_enter_manual_mode()
+	velocity.x = 0.0
+	velocity.z = 0.0
+	is_moving = false
+	move_direction = Vector3.ZERO
 
 func _equip_starting_items() -> void:
 	var starting_sword := load("res://items/espada_gasta.tres") as ItemData
@@ -171,7 +195,7 @@ func _xp_for_level(lvl: int) -> int:
 
 
 func set_destination(point: Vector3) -> void:
-	if is_dead:
+	if is_dead or not allows_mouse_movement():
 		return
 	move_mode = MoveMode.CLICK_MOVE
 	approach_target = null
@@ -181,7 +205,7 @@ func set_destination(point: Vector3) -> void:
 
 
 func approach_enemy(enemy: Node3D) -> void:
-	if is_dead:
+	if is_dead or not allows_mouse_movement():
 		return
 	set_destination(enemy.global_position)
 	approach_target = enemy
@@ -197,6 +221,8 @@ func approach_loot(loot: Node3D) -> void:
 			if loot.try_pickup(inventory):
 				_set_collect_target(null)
 				return
+	if not allows_mouse_movement():
+		return
 	set_destination(loot.global_position)
 	_set_collect_target(loot)
 	approach_target = null
@@ -387,7 +413,7 @@ func _physics_process(delta: float) -> void:
 			_set_collect_target(null)
 		elif map_ready and navigation_agent.target_position.distance_to(collect_target.global_position) > 0.25:
 			navigation_agent.target_position = collect_target.global_position
-	var manual_input := Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
+	var manual_input := Input.get_vector("move_left", "move_right", "move_forward", "move_backward") if allows_keyboard_movement() else Vector2.ZERO
 	if manual_input.length() > 0.01:
 		if move_mode != MoveMode.MANUAL_MOVE:
 			_enter_manual_mode()
@@ -396,7 +422,7 @@ func _physics_process(delta: float) -> void:
 		if move_mode == MoveMode.MANUAL_MOVE and map_ready:
 			navigation_agent.target_position = global_position
 		move_mode = MoveMode.CLICK_MOVE
-		if map_ready and not is_in_attack_range() and not navigation_agent.is_navigation_finished():
+		if allows_mouse_movement() and map_ready and not is_in_attack_range() and not navigation_agent.is_navigation_finished():
 			var running := _can_run()
 			var current_speed = speed * get_movement_speed_multiplier() * (run_multiplier if running else 1.0)
 			
@@ -504,11 +530,17 @@ func _try_start_manual_attack(world_point: Vector3) -> bool:
 	_manual_attack_buffer_timer = 0.0
 	attack_cooldown = ATTACK_INTERVAL if weapon_drawn else UNARMED_ATTACK_INTERVAL
 	attack_hit_resolved = false
+	var locked := get_locked_target()
+	if locked != null:
+		world_point = locked.global_position
 	manual_attack_requested.emit(world_point)
 	return true
 
 
 func _mouse_attack_point(screen_position: Vector2) -> Variant:
+	var locked := get_locked_target()
+	if locked != null:
+		return locked.global_position
 	var camera := get_viewport().get_camera_3d()
 	if camera == null:
 		return null
@@ -524,6 +556,9 @@ func _mouse_attack_point(screen_position: Vector2) -> Variant:
 
 
 func _find_manual_attack_target(direction: Vector3) -> Node3D:
+	var locked := get_locked_target()
+	if _can_hit_manually(locked, direction):
+		return locked
 	if _can_hit_manually(approach_target, direction):
 		return approach_target
 	var closest: Node3D = null
@@ -535,6 +570,11 @@ func _find_manual_attack_target(direction: Vector3) -> Node3D:
 				best_distance = distance
 				closest = candidate
 	return closest
+
+
+func get_locked_target() -> Node3D:
+	var component := get_node_or_null("TargetLock")
+	return component.get_target() if component != null else null
 
 
 func _can_hit_manually(target: Node3D, direction: Vector3) -> bool:
