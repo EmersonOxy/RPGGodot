@@ -21,10 +21,10 @@ func run() -> void:
 	var west: SpawnRegion3D = scene.get_node("SpawnRegions/WestGround")
 	var north: SpawnRegion3D = scene.get_node("SpawnRegions/NorthGround")
 	var player: Node3D = scene.get_node("Player")
-	for _frame in 5:
-		await physics_frame
 	west._timer = 100000.0
 	north._timer = 100000.0
+	for _frame in 5:
+		await physics_frame
 	west.ativada = true
 	north.ativada = true
 	west.distancia_minima_do_jogador = 0.0

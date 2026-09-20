@@ -1,5 +1,14 @@
 # Convenções do Inspector
 
+## Registro — Comportamento fora de combate (20/09/2026)
+
+- Novo estado explícito `WANDER` na máquina de estados do inimigo (IDLE, WANDER, CHASE, ATTACK, RETURN). IDLE é exclusivo do modo Parado; Vagar alterna pausas aleatórias e caminhadas curtas ao redor de `home_position`. O leash bloqueia apenas transições de combate: vagar continua funcionando com o jogador longe.
+- Parâmetros no `EnemyArchetype`, grupo COMPORTAMENTO FORA DE COMBATE: comportamento_fora_de_combate (Parado/Vagar), raio_de_movimento_ambiente (6 m), multiplicador_de_velocidade_ambiente (0.7, sobre a velocidade de combate), pausa_minima_ambiente (1.5 s), pausa_maxima_ambiente (4.0 s) e tentativas_de_destino (8). `EnemyBase` copia para valores efetivos em `_apply_difficulty` e reage ao sinal `changed` — edição pelo Remote sem polling. Não há duplicação por instância; rota de patrulha futura pertence à instância.
+- Destinos sempre centrados em `home_position` (nunca na posição atual), sorteados em círculo, projetados na NavigationMap e rejeitados além de 2 m da NavMesh; sem ponto válido, nova pausa. Movimento sempre via NavigationAgent3D com velocidade ambiente; 1.5 s sem deslocamento abandona o destino (inalcançável não trava). Percepção interrompe o vagar imediatamente (WANDER → CHASE/ATTACK); perder o jogador leva a RETURN e, ao chegar em casa, o ciclo ambiente recomeça com pausa.
+- Dessincronização por `RandomNumberGenerator` próprio de cada inimigo, randomizado no `_ready`; pausas e destinos por instância.
+- Teste focado `enemy_wander_test.gd`: Parado imóvel, destino dentro do raio e navegável, troca repetida de destinos, timers independentes, CHASE/ATTACK interrompendo vagar, RETURN e retomada com pausa, e ausência de deriva progressiva — 0 falhas. Suíte focada completa (SPAWN_REGION, DIFFICULTY, ARCHETYPES) também com 0 falhas.
+- Testes de spawn/dificuldade agora definem bases explícitas e congelam o timer no início, para não dependerem de valores ajustados manualmente na cena.
+
 ## Registro — Spawn independente, revisão do bloco 3 (20/09/2026)
 
 - Cada `SpawnRegion3D` agora é um spawner autocontido: ciclo próprio, intervalo e atraso próprios, distâncias e posicionamento próprios, composição própria e contador próprio de inimigos vivos. Um spawner não afeta nem lê configuração de outro. `EnemySpawnManager` foi removido junto com o grupo `enemy_spawn_regions`; não existe mais limite global nem seleção ponderada entre regiões.

@@ -60,6 +60,38 @@ extends Resource
 		velocidade_de_movimento = maxf(0.01, value)
 		emit_changed()
 
+@export_group("COMPORTAMENTO FORA DE COMBATE")
+## Como o inimigo se comporta sem perceber o jogador. Parado mantém o inimigo imóvel; Vagar alterna pausas e caminhadas curtas ao redor da posição de origem.
+@export_enum("Parado", "Vagar") var comportamento_fora_de_combate: int = 1:
+	set(value):
+		comportamento_fora_de_combate = clampi(value, 0, 1)
+		emit_changed()
+## Raio, em metros, ao redor da posição de origem onde o inimigo escolhe destinos de vagar. O centro é sempre a origem, nunca a posição atual.
+@export_range(0.5, 50.0, 0.5, "or_greater", "suffix:m") var raio_de_movimento_ambiente: float = 6.0:
+	set(value):
+		raio_de_movimento_ambiente = maxf(0.5, value)
+		emit_changed()
+## Multiplicador sobre a velocidade de movimento usado fora de combate. Não altera a velocidade de combate.
+@export_range(0.05, 1.0, 0.05) var multiplicador_de_velocidade_ambiente: float = 0.7:
+	set(value):
+		multiplicador_de_velocidade_ambiente = clampf(value, 0.05, 1.0)
+		emit_changed()
+## Pausa mínima entre caminhadas, em segundos.
+@export_range(0.0, 30.0, 0.1, "or_greater", "suffix:s") var pausa_minima_ambiente: float = 1.5:
+	set(value):
+		pausa_minima_ambiente = maxf(0.0, value)
+		emit_changed()
+## Pausa máxima entre caminhadas, em segundos.
+@export_range(0.1, 60.0, 0.1, "or_greater", "suffix:s") var pausa_maxima_ambiente: float = 4.0:
+	set(value):
+		pausa_maxima_ambiente = maxf(pausa_minima_ambiente, value)
+		emit_changed()
+## Quantidade de candidatos sorteados ao escolher um destino; se nenhum for navegável, o inimigo espera e tenta novamente.
+@export_range(1, 50, 1) var tentativas_de_destino: int = 8:
+	set(value):
+		tentativas_de_destino = maxi(1, value)
+		emit_changed()
+
 @export_group("APARÊNCIA")
 ## Cor base do corpo; flashes de dano e antecipação continuam temporários.
 @export var cor_do_corpo: Color = Color(0.8, 0.12, 0.16, 1.0):

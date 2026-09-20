@@ -28,8 +28,10 @@ func run() -> void:
 	var north: SpawnRegion3D = scene.get_node("SpawnRegions/NorthGround")
 	check(heavy.max_health == 324 and heavy.attack_damage == 31, "Hard scales enemy health and damage")
 	check(is_equal_approx(heavy.move_speed, 1.65) and is_equal_approx(heavy.aggro_range, 10.8), "Hard scales speed and perception")
-	check(west._maximo_efetivo == 13 and is_equal_approx(west._intervalo_efetivo, 6.0), "Hard scales west spawn limit and interval")
+	west.intervalo_de_spawn = 8.0
+	west.maximo_de_inimigos = 10
 	north.intervalo_de_spawn = 15.0
+	check(west._maximo_efetivo == 13 and is_equal_approx(west._intervalo_efetivo, 6.0), "Hard scales west spawn limit and interval")
 	check(is_equal_approx(north._intervalo_efetivo, 11.25), "North keeps its own base under hard")
 	check(is_equal_approx(west._intervalo_efetivo, 6.0), "Changing North does not change West")
 	var previous_health: int = heavy.health

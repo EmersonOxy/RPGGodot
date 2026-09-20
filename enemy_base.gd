@@ -5,7 +5,8 @@ const COMBAT_TEXT = preload("res://floating_combat_text.gd")
 
 signal died(enemy: Node3D)
 
-enum State { IDLE, CHASE, ATTACK, RETURN }
+enum State { IDLE, WANDER, CHASE, ATTACK, RETURN }
+enum ModoAmbiente { PARADO, VAGAR }
 
 @export_category("INIMIGO")
 @export_group("PERFIL")
@@ -62,6 +63,18 @@ var _hit_flash_remaining := 0.0
 var _visual_material: StandardMaterial3D
 var _base_color: Color
 var _strike_tween: Tween
+var _modo_ambiente := ModoAmbiente.VAGAR
+var _raio_ambiente := 6.0
+var _mult_velocidade_ambiente := 0.7
+var _pausa_min_ambiente := 1.5
+var _pausa_max_ambiente := 4.0
+var _tentativas_destino := 8
+var _rng_ambiente := RandomNumberGenerator.new()
+var _wander_timer := 0.0
+var _tem_destino_ambiente := false
+var _destino_ambiente := Vector3.ZERO
+var _wander_parado_tempo := 0.0
+var _wander_ultima_posicao := Vector3.ZERO
 
 @onready var selection_indicator: MeshInstance3D = $SelectionIndicator
 @onready var navigation_agent: NavigationAgent3D = $NavigationAgent3D
@@ -78,6 +91,7 @@ func _ready() -> void:
 	health = max_health
 	attack_cooldown = 0.0
 	home_position = global_position
+	_rng_ambiente.randomize()
 	target = get_tree().get_first_node_in_group("player") as Node3D
 	set_collision_mask_value(1, true)
 	set_collision_mask_value(2, true)
@@ -115,6 +129,12 @@ func _apply_difficulty(preserve_health_ratio: bool) -> void:
 	leash_range = perfil.limite_de_perseguicao
 	move_speed = perfil.velocidade_de_movimento * speed_multiplier
 	enemy_name = perfil.nome
+	_modo_ambiente = perfil.comportamento_fora_de_combate
+	_raio_ambiente = perfil.raio_de_movimento_ambiente
+	_mult_velocidade_ambiente = perfil.multiplicador_de_velocidade_ambiente
+	_pausa_min_ambiente = perfil.pausa_minima_ambiente
+	_pausa_max_ambiente = perfil.pausa_maxima_ambiente
+	_tentativas_destino = perfil.tentativas_de_destino
 	_visual_scale = Vector3.ONE * perfil.escala_visual
 	if _strike_tween:
 		_strike_tween.kill()
@@ -283,6 +303,8 @@ func _physics_process(delta: float) -> void:
 	match state:
 		State.IDLE:
 			_stop()
+		State.WANDER:
+			_processar_wander(delta)
 		State.CHASE:
 			_chase(delta)
 		State.ATTACK:
@@ -298,11 +320,23 @@ func _update_state() -> void:
 	var leashed := home_position.distance_to(target.global_position) > leash_range
 	match state:
 		State.IDLE:
-			if not player_alive or leashed:
+			if not player_alive:
 				return
-			if _is_target_in_range():
+			if not leashed and _is_target_in_range():
 				state = State.ATTACK
-			elif distance_to_player <= aggro_range:
+			elif not leashed and distance_to_player <= aggro_range:
+				state = State.CHASE
+			elif _modo_ambiente == ModoAmbiente.VAGAR:
+				_entrar_wander()
+		State.WANDER:
+			if _modo_ambiente != ModoAmbiente.VAGAR:
+				state = State.IDLE
+				return
+			if not player_alive:
+				return
+			if not leashed and _is_target_in_range():
+				state = State.ATTACK
+			elif not leashed and distance_to_player <= aggro_range:
 				state = State.CHASE
 		State.CHASE:
 			if not player_alive or leashed:
@@ -321,7 +355,78 @@ func _update_state() -> void:
 				else:
 					state = State.CHASE
 			elif _is_home_reached():
-				state = State.IDLE
+				if _modo_ambiente == ModoAmbiente.VAGAR:
+					_entrar_wander()
+				else:
+					state = State.IDLE
+
+
+func _entrar_wander() -> void:
+	state = State.WANDER
+	_tem_destino_ambiente = false
+	_destino_ambiente = Vector3.ZERO
+	_wander_parado_tempo = 0.0
+	_wander_ultima_posicao = global_position
+	_wander_timer = _pausa_aleatoria()
+
+
+func _pausa_aleatoria() -> float:
+	return _rng_ambiente.randf_range(_pausa_min_ambiente, maxf(_pausa_min_ambiente, _pausa_max_ambiente))
+
+
+func _processar_wander(delta: float) -> void:
+	if _wander_timer > 0.0:
+		_wander_timer = maxf(0.0, _wander_timer - delta)
+		_stop()
+		return
+	if not _tem_destino_ambiente:
+		_escolher_destino_ambiente()
+		if not _tem_destino_ambiente:
+			_wander_timer = _pausa_aleatoria()
+			_stop()
+			return
+		navigation_agent.target_position = _destino_ambiente
+	if _chegou_ao_destino_ambiente():
+		_tem_destino_ambiente = false
+		_wander_timer = _pausa_aleatoria()
+		_wander_parado_tempo = 0.0
+		_stop()
+		return
+	_follow_path(delta, move_speed * _mult_velocidade_ambiente)
+	var deslocou := global_position.distance_squared_to(_wander_ultima_posicao) > 0.0001
+	_wander_ultima_posicao = global_position
+	if deslocou:
+		_wander_parado_tempo = 0.0
+	else:
+		_wander_parado_tempo += delta
+	if _wander_parado_tempo > 1.5:
+		_tem_destino_ambiente = false
+		_wander_timer = _pausa_aleatoria()
+		_wander_parado_tempo = 0.0
+
+
+func _escolher_destino_ambiente() -> void:
+	_tem_destino_ambiente = false
+	var navigation_map := get_world_3d().navigation_map
+	if NavigationServer3D.map_get_iteration_id(navigation_map) <= 0:
+		return
+	for _attempt in _tentativas_destino:
+		var candidato := home_position + Vector3(
+			_rng_ambiente.randf_range(-_raio_ambiente, _raio_ambiente),
+			0.0,
+			_rng_ambiente.randf_range(-_raio_ambiente, _raio_ambiente)
+		)
+		var ponto := NavigationServer3D.map_get_closest_point(navigation_map, candidato)
+		if ponto.distance_to(candidato) > 2.0:
+			continue
+		_destino_ambiente = ponto
+		_tem_destino_ambiente = true
+		return
+
+
+func _chegou_ao_destino_ambiente() -> bool:
+	var flat := Vector2(global_position.x, global_position.z).distance_to(Vector2(_destino_ambiente.x, _destino_ambiente.z))
+	return flat < 0.4
 
 
 func _stop() -> void:
@@ -363,7 +468,8 @@ func _return_home(delta: float) -> void:
 	_follow_path(delta)
 
 
-func _follow_path(delta: float) -> void:
+func _follow_path(delta: float, speed := -1.0) -> void:
+	var velocidade := move_speed if speed < 0.0 else speed
 	if NavigationServer3D.map_get_iteration_id(navigation_agent.get_navigation_map()) <= 0:
 		return
 	if navigation_agent.is_navigation_finished():
@@ -372,7 +478,7 @@ func _follow_path(delta: float) -> void:
 	var direction := next_point - global_position
 	direction.y = 0.0
 	if direction.length() > 0.01:
-		var movement := direction.normalized() * minf(move_speed, direction.length() / delta)
+		var movement := direction.normalized() * minf(velocidade, direction.length() / delta)
 		velocity.x = movement.x
 		velocity.z = movement.z
 
@@ -380,7 +486,7 @@ func _follow_path(delta: float) -> void:
 		var to_target := navigation_agent.target_position - global_position
 		to_target.y = 0.0
 		if to_target.length() > 0.2:
-			var advance := to_target.normalized() * minf(move_speed, to_target.length() / delta)
+			var advance := to_target.normalized() * minf(velocidade, to_target.length() / delta)
 			velocity.x = advance.x
 			velocity.z = advance.z
 
